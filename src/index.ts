@@ -1,28 +1,27 @@
-import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager'
+import { GetSecretValueCommand } from '@aws-sdk/client-secrets-manager'
+import {
+  getBlizzardCredentials,
+  getBlizzardToken,
+  getWoWTokenPrice,
+  getClassicAuctionHouseIndex,
+  getAuctionHouseData,
+} from './blizzard'
 import { InteractionType, InteractionResponseType, verifyKey } from 'discord-interactions'
+import { secretsClient } from './clients'
 
-const secretsClient = new SecretsManagerClient({})
 const SECRET_NAME = process.env.DISCORD_PUBLIC_KEY_SECRET_NAME
+let cachedPublicKey: string | undefined
 
 const getPublicKey = async () => {
+  if (cachedPublicKey) return cachedPublicKey
   if (!SECRET_NAME) throw new Error('Secret name not defined')
   const response = await secretsClient.send(new GetSecretValueCommand({ SecretId: SECRET_NAME }))
+  cachedPublicKey = response.SecretString
   return response.SecretString
 }
 
 // Tree puns/jokes
-const TREE_QUOTES = [
-  "I'm rooting for you!",
-  "Leaf me alone, I'm bushing!",
-  "You're un-be-leaf-able!",
-  'Branching out, are we?',
-  "I'm stumped.",
-  'Wood you like to hear a joke?',
-  'Stay grounded.',
-  "That's tree-mendous!",
-  'Barking up the wrong tree?',
-  'Turn over a new leaf.',
-]
+import { TREE_QUOTES } from './constants/TREE_QUOTES'
 
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
 
@@ -135,66 +134,4 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       body: JSON.stringify('Internal Server Error'),
     }
   }
-}
-
-// Blizzard Helpers
-const BLIZZARD_SECRET_NAME = process.env.BLIZZARD_SECRET_NAME
-
-interface BlizzardCredentials {
-  clientId: string
-  clientSecret: string
-}
-
-const getBlizzardCredentials = async (): Promise<BlizzardCredentials | null> => {
-  if (!BLIZZARD_SECRET_NAME) {
-    console.error('BLIZZARD_SECRET_NAME not defined')
-    return null
-  }
-  try {
-    const response = await secretsClient.send(
-      new GetSecretValueCommand({ SecretId: BLIZZARD_SECRET_NAME }),
-    )
-    if (response.SecretString) {
-      return JSON.parse(response.SecretString) as BlizzardCredentials
-    }
-  } catch (e) {
-    console.error('Failed to fetch Blizzard secret', e)
-  }
-  return null
-}
-
-const getBlizzardToken = async (clientId: string, clientSecret: string): Promise<string> => {
-  const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64')
-  const response = await fetch('https://oauth.battle.net/token', {
-    method: 'POST',
-    body: 'grant_type=client_credentials',
-    headers: {
-      Authorization: `Basic ${auth}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-  })
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch Blizzard token: ${response.statusText}`)
-  }
-
-  const data = (await response.json()) as { access_token: string }
-  return data.access_token
-}
-
-const getWoWTokenPrice = async (accessToken: string): Promise<number> => {
-  // US Region, Static Namespace
-  const url = 'https://us.api.blizzard.com/data/wow/token/index?namespace=dynamic-us&locale=en_US'
-  const response = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  })
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch WoW Token price: ${response.statusText}`)
-  }
-
-  const data = (await response.json()) as { price: number }
-  return data.price
 }

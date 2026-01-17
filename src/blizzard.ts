@@ -1,0 +1,112 @@
+import { GetSecretValueCommand } from '@aws-sdk/client-secrets-manager'
+import { secretsClient } from './clients'
+
+const BLIZZARD_SECRET_NAME = process.env.BLIZZARD_SECRET_NAME
+
+export interface BlizzardCredentials {
+  clientId: string
+  clientSecret: string
+}
+
+let cachedCredentials: BlizzardCredentials | null = null
+let cachedToken: string | null = null
+let tokenExpiration: number = 0
+
+export const getBlizzardCredentials = async (): Promise<BlizzardCredentials | null> => {
+  if (cachedCredentials) return cachedCredentials
+  if (!BLIZZARD_SECRET_NAME) {
+    console.error('BLIZZARD_SECRET_NAME not defined')
+    return null
+  }
+  try {
+    const response = await secretsClient.send(
+      new GetSecretValueCommand({ SecretId: BLIZZARD_SECRET_NAME }),
+    )
+    if (response.SecretString) {
+      cachedCredentials = JSON.parse(response.SecretString) as BlizzardCredentials
+      return cachedCredentials
+    }
+  } catch (e) {
+    console.error('Failed to fetch Blizzard secret', e)
+  }
+  return null
+}
+
+export const getBlizzardToken = async (clientId: string, clientSecret: string): Promise<string> => {
+  if (cachedToken && Date.now() < tokenExpiration) return cachedToken
+
+  const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64')
+  const response = await fetch('https://oauth.battle.net/token', {
+    method: 'POST',
+    body: 'grant_type=client_credentials',
+    headers: {
+      Authorization: `Basic ${auth}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+  })
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch Blizzard token: ${response.statusText}`)
+  }
+
+  const data = (await response.json()) as { access_token: string; expires_in: number }
+  cachedToken = data.access_token
+  // Buffer expiration by 60 seconds
+  tokenExpiration = Date.now() + (data.expires_in - 60) * 1000
+  return data.access_token
+}
+
+export const getWoWTokenPrice = async (accessToken: string): Promise<number> => {
+  // US Region, Static Namespace
+  const url = 'https://us.api.blizzard.com/data/wow/token/index?namespace=dynamic-us&locale=en_US'
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  })
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch WoW Token price: ${response.statusText}`)
+  }
+
+  const data = (await response.json()) as { price: number }
+  return data.price
+}
+
+export const getClassicAuctionHouseIndex = async (
+  accessToken: string,
+  connectedRealmId: number,
+): Promise<any> => {
+  // Classic Namespace: dynamic-classic-us for Anniversary
+  const url = `https://us.api.blizzard.com/data/wow/connected-realm/${connectedRealmId}/auctions/index?namespace=dynamic-classic-us&locale=en_US`
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  })
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch Classic AH Index: ${response.statusText}`)
+  }
+
+  return await response.json()
+}
+
+export const getAuctionHouseData = async (
+  accessToken: string,
+  connectedRealmId: number,
+  auctionHouseId: number,
+): Promise<any> => {
+  const url = `https://us.api.blizzard.com/data/wow/connected-realm/${connectedRealmId}/auctions/${auctionHouseId}?namespace=dynamic-classic-us&locale=en_US`
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  })
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch Auction House Data: ${response.statusText}`)
+  }
+
+  return await response.json()
+}

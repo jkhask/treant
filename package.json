@@ -2,7 +2,7 @@
   "name": "treant",
   "version": "0.1.0",
   "bin": {
-    "treant": "bin/treant.js"
+    "treant": "dist/bin/treant.js"
   },
   "scripts": {
     "build": "tsc",

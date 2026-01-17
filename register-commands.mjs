@@ -1,28 +1,30 @@
 import { REST, Routes } from 'discord.js'
 import 'dotenv/config'
-// Usage: node register-commands.js
+// Usage: node register-commands.mjs
 
 const commands = [
   {
     name: 'treant',
-    description: 'Get a funny tree-related quote!',
+    description: 'Get a tree pun!',
   },
   {
     name: 'wow-token',
-    description: 'Get current WoW Token price',
+    description: 'Get the current WoW Token price (NA)',
+  },
+  {
+    name: 'classic-ah',
+    description: 'Get Classic AA Index for Dreamscythe',
   },
 ]
 
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN)
 
-;(async () => {
-  try {
-    console.log('Started refreshing application (/) commands.')
+try {
+  console.log('Started refreshing application (/) commands.')
 
-    await rest.put(Routes.applicationCommands(process.env.DISCORD_CLIENT_ID), { body: commands })
+  await rest.put(Routes.applicationCommands(process.env.DISCORD_CLIENT_ID), { body: commands })
 
-    console.log('Successfully reloaded application (/) commands.')
-  } catch (error) {
-    console.error(error)
-  }
-})()
+  console.log('Successfully reloaded application (/) commands.')
+} catch (error) {
+  console.error(error)
+}

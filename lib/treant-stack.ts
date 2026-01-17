@@ -28,6 +28,7 @@ export class TreantStack extends cdk.Stack {
       entry: path.join(__dirname, '../src/index.ts'),
       handler: 'handler',
       timeout: cdk.Duration.seconds(30),
+      memorySize: 1024,
       environment: {
         DISCORD_PUBLIC_KEY_SECRET_NAME: discordPublicKey.secretName,
         BLIZZARD_SECRET_NAME: blizzardCredentials.secretName,
