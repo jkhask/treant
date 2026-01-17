@@ -1,0 +1,43 @@
+{
+  "name": "treant",
+  "version": "0.1.0",
+  "bin": {
+    "treant": "bin/treant.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "test": "jest",
+    "cdk": "cdk",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.159",
+    "@types/jest": "^30",
+    "@types/node": "^24.10.1",
+    "aws-cdk": "2.1101.0",
+    "discord.js": "^14.25.1",
+    "esbuild": "^0.27.2",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.5",
+    "globals": "^17.0.0",
+    "jest": "^30",
+    "prettier": "^3.8.0",
+    "ts-jest": "^29",
+    "ts-node": "^10.9.2",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.53.0"
+  },
+  "dependencies": {
+    "@aws-sdk/client-cloudformation": "^3.971.0",
+    "@aws-sdk/client-secrets-manager": "^3.971.0",
+    "aws-cdk-lib": "^2.234.1",
+    "constructs": "^10.0.0",
+    "discord-interactions": "^4.4.0",
+    "dotenv": "^17.2.3",
+    "tslib": "^2.8.1"
+  }
+}
