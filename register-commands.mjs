@@ -5,15 +5,40 @@ import 'dotenv/config'
 const commands = [
   {
     name: 'treant',
-    description: 'Get a tree pun!',
-  },
-  {
-    name: 'wow-token',
-    description: 'Get the current WoW Token price (NA)',
-  },
-  {
-    name: 'classic-ah',
-    description: 'Get Classic AA Index for Dreamscythe',
+    description: 'Treant commands',
+    options: [
+      {
+        name: 'pun',
+        description: 'Get a tree pun!',
+        type: 1, // SUB_COMMAND
+      },
+      {
+        name: 'gold',
+        description: 'Get current G2G gold price',
+        type: 1, // SUB_COMMAND
+        options: [
+          {
+            name: 'amount',
+            description: 'Amount of gold to check price for (default 1000)',
+            type: 4, // INTEGER
+            required: false,
+          },
+        ],
+      },
+      {
+        name: 'speak',
+        description: 'Speak text in voice channel',
+        type: 1, // SUB_COMMAND
+        options: [
+          {
+            name: 'text',
+            description: 'Text to speak',
+            type: 3, // STRING
+            required: true,
+          },
+        ],
+      },
+    ],
   },
 ]
 
