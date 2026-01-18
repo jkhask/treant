@@ -8,6 +8,7 @@ import {
   entersState,
   StreamType,
 } from '@discordjs/voice'
+import { InternalDiscordGatewayAdapterCreator } from 'discord.js'
 import { Readable } from 'stream'
 
 const polly = new PollyClient({ region: process.env.AWS_REGION || 'us-east-1' })
@@ -16,23 +17,24 @@ export const playTTS = async (
   channelId: string,
   guildId: string,
   text: string,
-  adapterCreator: any,
+  adapterCreator: InternalDiscordGatewayAdapterCreator,
 ) => {
   try {
     const connection = joinVoiceChannel({
-      channelId: channelId,
-      guildId: guildId,
-      adapterCreator: adapterCreator,
+      channelId,
+      guildId,
+      adapterCreator,
       selfDeaf: false,
     })
 
     await entersState(connection, VoiceConnectionStatus.Ready, 30_000)
 
     const command = new SynthesizeSpeechCommand({
-      Text: text,
+      Text: `<speak><prosody rate="slow" pitch="x-low">${text}</prosody></speak>`,
       OutputFormat: 'mp3',
       VoiceId: 'Brian',
       Engine: 'neural',
+      TextType: 'ssml',
     })
 
     const response = await polly.send(command)
