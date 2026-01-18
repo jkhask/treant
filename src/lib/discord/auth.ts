@@ -1,6 +1,6 @@
 import { GetSecretValueCommand } from '@aws-sdk/client-secrets-manager'
 import { verifyKey } from 'discord-interactions'
-import { secretsClient } from '../../clients'
+import { secretsClient } from '../aws/clients'
 
 const SECRET_NAME = process.env.DISCORD_PUBLIC_KEY_SECRET_NAME
 let cachedPublicKey: string | undefined

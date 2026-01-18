@@ -1,5 +1,5 @@
 import QuickChart from 'quickchart-js'
-import { PriceRecord } from './price-history'
+import { PriceRecord } from '../db/price-history'
 
 export const generateGoldChartUrl = (data: PriceRecord[], amount: number): string => {
   const chart = new QuickChart()
@@ -69,7 +69,7 @@ export const generateGoldChartUrl = (data: PriceRecord[], amount: number): strin
             ticks: {
               fontColor: '#aaa',
               // Use a callback to add dollar sign
-              callback: (value: any) => {
+              callback: (value: string | number) => {
                 return '$' + value
               },
             },

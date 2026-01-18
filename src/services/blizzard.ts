@@ -1,5 +1,5 @@
 import { GetSecretValueCommand } from '@aws-sdk/client-secrets-manager'
-import { secretsClient } from './clients'
+import { secretsClient } from '../lib/aws/clients'
 
 const BLIZZARD_SECRET_NAME = process.env.BLIZZARD_SECRET_NAME
 
@@ -11,7 +11,9 @@ export interface BlizzardCredentials {
 let cachedCredentials: BlizzardCredentials | null = null
 let cachedToken: string | null = null
 let tokenExpiration: number = 0
-
+export interface AuctionHouseIndex {
+  auctions: string
+}
 export const getBlizzardCredentials = async (): Promise<BlizzardCredentials | null> => {
   if (cachedCredentials) return cachedCredentials
   if (!BLIZZARD_SECRET_NAME) {
@@ -76,7 +78,7 @@ export const getWoWTokenPrice = async (accessToken: string): Promise<number> => 
 export const getClassicAuctionHouseIndex = async (
   accessToken: string,
   connectedRealmId: number,
-): Promise<any> => {
+): Promise<AuctionHouseIndex> => {
   // Classic Namespace: dynamic-classic-us for Anniversary
   const url = `https://us.api.blizzard.com/data/wow/connected-realm/${connectedRealmId}/auctions/index?namespace=dynamic-classic-us&locale=en_US`
   const response = await fetch(url, {
@@ -89,14 +91,22 @@ export const getClassicAuctionHouseIndex = async (
     throw new Error(`Failed to fetch Classic AH Index: ${response.statusText}`)
   }
 
-  return await response.json()
+  return (await response.json()) as AuctionHouseIndex
+}
+
+export interface AuctionHouseData {
+  id: number
+  item: { id: number }
+  buyout: number
+  quantity: number
+  time_left: string
 }
 
 export const getAuctionHouseData = async (
   accessToken: string,
   connectedRealmId: number,
   auctionHouseId: number,
-): Promise<any> => {
+): Promise<AuctionHouseData[]> => {
   const url = `https://us.api.blizzard.com/data/wow/connected-realm/${connectedRealmId}/auctions/${auctionHouseId}?namespace=dynamic-classic-us&locale=en_US`
   const response = await fetch(url, {
     headers: {
@@ -108,5 +118,5 @@ export const getAuctionHouseData = async (
     throw new Error(`Failed to fetch Auction House Data: ${response.statusText}`)
   }
 
-  return await response.json()
+  return (await response.json()) as AuctionHouseData[]
 }

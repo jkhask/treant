@@ -1,16 +1,19 @@
 import { InteractionResponseType } from 'discord-interactions'
-import { getG2GGoldPrice } from '../g2g'
-import { recordGoldPrice, getGoldPriceHistory } from '../price-history'
-import { generateGoldChartUrl } from '../chart'
+import { getG2GGoldPrice } from '../services/g2g'
+import { recordGoldPrice, getGoldPriceHistory } from '../db/price-history'
+import { generateGoldChartUrl } from '../lib/chart'
 import { sendVoiceCommand } from '../lib/aws/sqs'
+import { DiscordCommandOption, DiscordInteraction } from '../types/discord'
 
-export const handleGoldCommand = async (subcommand: any, interaction: any) => {
+export const handleGoldCommand = async (
+  subcommand: DiscordCommandOption,
+  interaction: DiscordInteraction,
+) => {
   try {
     // Check for amount option
-    const amountOption = subcommand.options?.find(
-      (o: { name: string; value: number }) => o.name === 'amount',
-    )
-    const amount = amountOption?.value || 1000
+    const options = subcommand.options
+    const amountOption = options?.find((o) => o.name === 'amount')
+    const amount = (amountOption?.value as number) || 1000
 
     const unitPrice = await getG2GGoldPrice()
     const totalPrice = (unitPrice * amount).toFixed(2)

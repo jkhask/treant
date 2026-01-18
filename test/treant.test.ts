@@ -20,7 +20,7 @@ test('Treant Stack Created', () => {
 
   // Verify Lambda Function Created
   template.hasResourceProperties('AWS::Lambda::Function', {
-    Runtime: 'nodejs20.x',
+    Runtime: 'nodejs24.x',
     Environment: {
       Variables: {
         DISCORD_PUBLIC_KEY_SECRET_NAME: Match.anyValue(),
