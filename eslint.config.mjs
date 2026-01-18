@@ -4,6 +4,7 @@ import tseslint from 'typescript-eslint'
 import eslintPluginPrettier from 'eslint-plugin-prettier'
 import eslintConfigPrettier from 'eslint-config-prettier'
 import globals from 'globals'
+import preferArrowFunctions from 'eslint-plugin-prefer-arrow-functions'
 
 export default defineConfig([
   {
@@ -19,12 +20,21 @@ export default defineConfig([
     },
     plugins: {
       prettier: eslintPluginPrettier,
+      'prefer-arrow-functions': preferArrowFunctions,
     },
     rules: {
       ...eslintConfigPrettier.rules,
       'prettier/prettier': 'error',
       '@typescript-eslint/no-explicit-any': 'warn', // Allow any for now, but warn
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+      'prefer-arrow-functions/prefer-arrow-functions': [
+        'error',
+        {
+          disallowPrototype: true,
+          singleReturnOnly: false,
+          classPropertiesAllowed: false,
+        },
+      ],
     },
   },
 ])
