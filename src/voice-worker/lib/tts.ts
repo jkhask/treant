@@ -12,7 +12,12 @@ import { Readable } from 'stream'
 
 const polly = new PollyClient({ region: process.env.AWS_REGION || 'us-east-1' })
 
-export const playTTS = async (channelId: string, guildId: string, text: string, adapterCreator: any) => {
+export const playTTS = async (
+  channelId: string,
+  guildId: string,
+  text: string,
+  adapterCreator: any,
+) => {
   try {
     const connection = joinVoiceChannel({
       channelId: channelId,

@@ -10,11 +10,10 @@ client.on('ready', () => {
   console.log(`Logged in as ${client.user?.tag}!`)
   console.log(`Bot is in ${client.guilds.cache.size} guilds:`)
   client.guilds.cache.forEach((g) => console.log(` - ${g.name} (${g.id})`))
-  
+
   // Start polling when client is ready
   pollQueue(client)
 })
-
 ;(async () => {
   try {
     const token = await getDiscordToken()
