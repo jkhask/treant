@@ -33,7 +33,7 @@ export const playTTS = async (
       Text: `<speak><prosody rate="slow" pitch="x-low">${text}</prosody></speak>`,
       OutputFormat: 'mp3',
       VoiceId: 'Brian',
-      Engine: 'neural',
+      Engine: 'standard',
       TextType: 'ssml',
     })
 
