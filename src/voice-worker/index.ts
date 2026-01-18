@@ -6,7 +6,7 @@ const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates],
 })
 
-client.on('ready', () => {
+client.on('clientReady', () => {
   console.log(`Logged in as ${client.user?.tag}!`)
   console.log(`Bot is in ${client.guilds.cache.size} guilds:`)
   client.guilds.cache.forEach((g) => console.log(` - ${g.name} (${g.id})`))
