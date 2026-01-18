@@ -30,11 +30,10 @@ export const playTTS = async (
     await entersState(connection, VoiceConnectionStatus.Ready, 30_000)
 
     const command = new SynthesizeSpeechCommand({
-      Text: `<speak><prosody rate="slow" pitch="x-low">${text}</prosody></speak>`,
+      Text: text,
       OutputFormat: 'mp3',
-      VoiceId: 'Brian',
-      Engine: 'standard',
-      TextType: 'ssml',
+      VoiceId: 'Gregory',
+      Engine: 'neural',
     })
 
     const response = await polly.send(command)
