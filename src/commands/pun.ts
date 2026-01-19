@@ -1,6 +1,6 @@
 import { InteractionResponseType } from 'discord-interactions'
 import { TREE_QUOTES } from '../constants/TREE_QUOTES'
-import { sendVoiceCommand } from '../lib/aws/sqs'
+import { sendVoiceCommand } from '../services/sqs'
 import { DiscordInteraction } from '../types/discord'
 
 export const handlePunCommand = async (interaction: DiscordInteraction) => {

@@ -1,5 +1,5 @@
 import { GetSecretValueCommand } from '@aws-sdk/client-secrets-manager'
-import { secretsClient } from '../lib/aws/clients'
+import { secretsClient } from './secrets'
 
 const BLIZZARD_SECRET_NAME = process.env.BLIZZARD_SECRET_NAME
 
@@ -138,19 +138,34 @@ export const getCharacterEquipment = async (
   characterName: string,
 ): Promise<CharacterEquipment> => {
   // Classic Era Anniversary Namespace: profile-classic-us (verified via script)
-  const url = `https://us.api.blizzard.com/profile/wow/character/${realmSlug}/${characterName.toLowerCase()}/equipment?namespace=profile-classic-us&locale=en_US`
-  const response = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  })
+  const url = `https://us.api.blizzard.com/profile/wow/character/${realmSlug}/${characterName.toLowerCase()}/equipment?namespace=profile-classic-us&locale=en_US&t=${Date.now()}`
 
-  if (!response.ok) {
-    if (response.status === 404) {
-      throw new Error(`Character ${characterName} not found on realm ${realmSlug}`)
+  console.log(`[Blizzard] Requesting equipment from: ${url}`)
+
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Cache-Control': 'no-cache',
+        Pragma: 'no-cache',
+      },
+    })
+
+    console.log(`[Blizzard] Response received. Status: ${response.status}`)
+
+    if (!response.ok) {
+      console.error(`[Blizzard] Error response: ${response.status} ${response.statusText}`)
+      if (response.status === 404) {
+        throw new Error(`Character ${characterName} not found on realm ${realmSlug}`)
+      }
+      throw new Error(`Failed to fetch Character Equipment: ${response.statusText}`)
     }
-    throw new Error(`Failed to fetch Character Equipment: ${response.statusText}`)
-  }
 
-  return (await response.json()) as CharacterEquipment
+    const data = await response.json()
+    console.log('[Blizzard] JSON parsed successfully')
+    return data as CharacterEquipment
+  } catch (error) {
+    console.error('[Blizzard] Fetch failed:', error)
+    throw error
+  }
 }

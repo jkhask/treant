@@ -2,7 +2,7 @@ import { InteractionResponseType } from 'discord-interactions'
 import { getG2GGoldPrice } from '../services/g2g'
 import { recordGoldPrice, getGoldPriceHistory } from '../db/price-history'
 import { generateGoldChartUrl } from '../lib/chart'
-import { sendVoiceCommand } from '../lib/aws/sqs'
+import { sendVoiceCommand } from '../services/sqs'
 import { DiscordCommandOption, DiscordInteraction } from '../types/discord'
 
 export const handleGoldCommand = async (

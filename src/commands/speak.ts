@@ -1,11 +1,14 @@
 import { InteractionResponseType } from 'discord-interactions'
-import { sendVoiceCommand } from '../lib/aws/sqs'
+import { sendVoiceCommand } from '../services/sqs'
 
-export const handleSpeakCommand = async (subcommand: any, interaction: any) => {
-  const textOption = subcommand.options?.find(
-    (o: { name: string; value: string }) => o.name === 'text',
-  )
-  const text = textOption?.value
+import { DiscordCommandOption, DiscordInteraction } from '../types/discord'
+
+export const handleSpeakCommand = async (
+  subcommand: DiscordCommandOption,
+  interaction: DiscordInteraction,
+) => {
+  const textOption = subcommand.options?.find((o) => o.name === 'text')
+  const text = textOption?.value as string
   const guildId = interaction.guild_id
   const userId = interaction.member?.user?.id
 

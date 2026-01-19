@@ -41,6 +41,7 @@
     "@aws-sdk/lib-dynamodb": "^3.971.0",
     "@discordjs/opus": "^0.10.0",
     "@discordjs/voice": "^0.19.0",
+    "@google/generative-ai": "^0.24.1",
     "aws-cdk-lib": "^2.234.1",
     "constructs": "^10.0.0",
     "discord-interactions": "^4.4.0",

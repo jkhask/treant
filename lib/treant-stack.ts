@@ -2,6 +2,7 @@ import * as cdk from 'aws-cdk-lib'
 import { Construct } from 'constructs'
 import * as lambda from 'aws-cdk-lib/aws-lambda'
 import * as nodejs from 'aws-cdk-lib/aws-lambda-nodejs'
+import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources'
 import * as path from 'path'
 
 export class TreantStack extends cdk.Stack {
@@ -22,6 +23,11 @@ export class TreantStack extends cdk.Stack {
       },
     )
 
+    // Google API Key Secret
+    const googleApiKey = new cdk.aws_secretsmanager.Secret(this, 'GoogleApiKeySecret', {
+      description: 'API Key for Google Gemini',
+    })
+
     // Discord Bot Lambda Function
     const botFunction = new nodejs.NodejsFunction(this, 'DiscordBotFunction', {
       runtime: lambda.Runtime.NODEJS_24_X,
@@ -32,6 +38,7 @@ export class TreantStack extends cdk.Stack {
       environment: {
         DISCORD_PUBLIC_KEY_SECRET_NAME: discordPublicKey.secretName,
         BLIZZARD_SECRET_NAME: blizzardCredentials.secretName,
+        GOOGLE_API_KEY_SECRET_NAME: googleApiKey.secretName,
       },
       bundling: {
         minify: true,
@@ -42,6 +49,7 @@ export class TreantStack extends cdk.Stack {
     // Grant Lambda permission to read the secret
     discordPublicKey.grantRead(botFunction)
     blizzardCredentials.grantRead(botFunction)
+    googleApiKey.grantRead(botFunction)
 
     // DynamoDB Table for Gold Price History
     const goldPriceTable = new cdk.aws_dynamodb.Table(this, 'GoldPriceHistoryTable', {
@@ -51,7 +59,19 @@ export class TreantStack extends cdk.Stack {
     })
 
     goldPriceTable.grantReadWriteData(botFunction)
+    goldPriceTable.grantReadWriteData(botFunction)
     botFunction.addEnvironment('GOLD_PRICE_TABLE_NAME', goldPriceTable.tableName)
+
+    // Discord Command Queue (SQS) - for async processing like /judge
+    const commandQueue = new cdk.aws_sqs.Queue(this, 'DiscordCommandQueue', {
+      visibilityTimeout: cdk.Duration.seconds(30), // Lambda timeout
+    })
+
+    // Grant permissions and add event source
+    commandQueue.grantSendMessages(botFunction)
+    commandQueue.grantConsumeMessages(botFunction)
+    botFunction.addEventSource(new SqsEventSource(commandQueue))
+    botFunction.addEnvironment('COMMAND_QUEUE_URL', commandQueue.queueUrl)
 
     // --- Voice Worker Infrastructure ---
 
@@ -147,6 +167,11 @@ export class TreantStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'BlizzardSecretName', {
       value: blizzardCredentials.secretName,
       description: 'The name of the Blizzard secret in Secrets Manager',
+    })
+
+    new cdk.CfnOutput(this, 'GoogleApiKeySecretName', {
+      value: googleApiKey.secretName,
+      description: 'The name of the Google API Key secret in Secrets Manager',
     })
 
     new cdk.CfnOutput(this, 'BotFunctionArn', {

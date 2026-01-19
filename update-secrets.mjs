@@ -66,6 +66,31 @@ const STACK_NAME = 'TreantStack'
     } else {
       console.log('ℹ️ BLIZZARD_CLIENT_ID or BLIZZARD_CLIENT_SECRET not in .env, skipping.')
     }
+
+    // 3. Update Google API Key
+    const googleApiKey = process.env.GOOGLE_API_KEY
+    if (googleApiKey) {
+      console.log('Found GOOGLE_API_KEY in .env, updating secret...')
+
+      const googleOutput = outputs.find(
+        (o) => o.OutputKey && o.OutputKey.startsWith('GoogleApiKeySecretName'),
+      )
+
+      if (googleOutput && googleOutput.OutputValue) {
+        const secretName = googleOutput.OutputValue
+        await smClient.send(
+          new PutSecretValueCommand({
+            SecretId: secretName,
+            SecretString: googleApiKey,
+          }),
+        )
+        console.log(`✅ Successfully updated Google API Key (${secretName})`)
+      } else {
+        console.warn('⚠️ Could not find GoogleApiKeySecretName output in CloudFormation stack')
+      }
+    } else {
+      console.log('ℹ️ GOOGLE_API_KEY not in .env, skipping.')
+    }
   } catch (error) {
     console.error('❌ Error updating secrets:', error)
     process.exit(1)
