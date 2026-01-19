@@ -126,7 +126,6 @@ export interface EquippedItem {
   item: { id: number }
   name: string
   quality: { name: string }
-  level: { value: number }
 }
 
 export interface CharacterEquipment {

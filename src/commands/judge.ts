@@ -40,7 +40,7 @@ export const handleJudgeCommand = async (
 
     const itemsList = equipment.equipped_items
       .map((item) => {
-        return `**${item.slot.name}:** ${item.name} (ilvl ${item.level.value})`
+        return `**${item.slot.name}:** ${item.name}`
       })
       .join('\n')
 
@@ -55,7 +55,7 @@ export const handleJudgeCommand = async (
     const isNotFound = error instanceof Error && error.message.includes('not found')
     const errorMessage = isNotFound
       ? `❌ **Error:** Character "${subcommand.options?.find((o) => o.name === 'character')?.value}" not found on Dreamscythe.`
-      : `❌ **Error:** Failed to fetch character equipment.`
+      : `❌ **Error:** Failed to fetch character equipment: ${error instanceof Error ? error.message : String(error)}`
 
     return {
       type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
