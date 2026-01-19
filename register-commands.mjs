@@ -38,6 +38,19 @@ const commands = [
           },
         ],
       },
+      {
+        name: 'judge',
+        description: 'Judge a character based on their gear (Dreamscythe)',
+        type: 1, // SUB_COMMAND
+        options: [
+          {
+            name: 'character',
+            description: 'Character Name',
+            type: 3, // STRING
+            required: true,
+          },
+        ],
+      },
     ],
   },
 ]

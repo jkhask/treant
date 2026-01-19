@@ -120,3 +120,38 @@ export const getAuctionHouseData = async (
 
   return (await response.json()) as AuctionHouseData[]
 }
+
+export interface EquippedItem {
+  slot: { name: string }
+  item: { id: number }
+  name: string
+  quality: { name: string }
+  level: { value: number }
+}
+
+export interface CharacterEquipment {
+  equipped_items: EquippedItem[]
+}
+
+export const getCharacterEquipment = async (
+  accessToken: string,
+  realmSlug: string,
+  characterName: string,
+): Promise<CharacterEquipment> => {
+  // Classic Era Anniversary Namespace: profile-classic-us (verified via script)
+  const url = `https://us.api.blizzard.com/profile/wow/character/${realmSlug}/${characterName.toLowerCase()}/equipment?namespace=profile-classic-us&locale=en_US`
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  })
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error(`Character ${characterName} not found on realm ${realmSlug}`)
+    }
+    throw new Error(`Failed to fetch Character Equipment: ${response.statusText}`)
+  }
+
+  return (await response.json()) as CharacterEquipment
+}
