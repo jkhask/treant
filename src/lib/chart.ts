@@ -4,30 +4,19 @@ import { PriceRecord } from '../db/price-history'
 export const generateGoldChartUrl = (data: PriceRecord[], amount: number): string => {
   const chart = new QuickChart()
 
-  const labels = data.map((record) => {
-    // Format timestamp as simple HH:MM in Eastern Time
-    const date = new Date(record.timestamp)
-    return date.toLocaleString('en-US', {
-      timeZone: 'America/New_York',
-      month: 'numeric',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    })
-  })
-
-  // Scale prices by amount and round
-  const prices = data.map((record) => Number((record.price * amount).toFixed(2)))
+  // Create data points with x (timestamp) and y (price)
+  const chartData = data.map((record) => ({
+    x: record.timestamp,
+    y: Number((record.price * amount).toFixed(2)),
+  }))
 
   chart.setConfig({
     type: 'line',
     data: {
-      labels: labels,
       datasets: [
         {
           label: `Cost for ${amount.toLocaleString()} Gold (USD)`,
-          data: prices,
+          data: chartData,
           fill: true,
           borderColor: '#FFD700', // Gold hex
           backgroundColor: 'rgba(255, 215, 0, 0.2)', // Semi-transparent gold
@@ -53,6 +42,15 @@ export const generateGoldChartUrl = (data: PriceRecord[], amount: number): strin
       scales: {
         xAxes: [
           {
+            type: 'time',
+            time: {
+              unit: 'day',
+              displayFormats: {
+                day: 'MMM D',
+                hour: 'hA',
+              },
+              tooltipFormat: 'MMM D, h:mm a',
+            },
             ticks: {
               fontColor: '#aaa',
               autoSkip: true,
