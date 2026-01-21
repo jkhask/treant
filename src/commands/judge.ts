@@ -1,9 +1,4 @@
 import { InteractionResponseType } from 'discord-interactions'
-import {
-  getBlizzardCredentials,
-  getBlizzardToken,
-  getCharacterEquipment,
-} from '../services/blizzard'
 import { analyzeGear } from '../services/bedrock'
 import { CommandPayload, sendCommandToQueue } from '../services/sqs'
 import { DiscordCommandOption, DiscordInteraction } from '../types/discord'
@@ -57,61 +52,36 @@ export const processJudgeCommandAsync = async (payload: CommandPayload) => {
   const characterOption = options.find((o: any) => o.name === 'character')
   const characterName = characterOption?.value as string
 
+  const realmOption = options.find((o: any) => o.name === 'realm')
+  const realm = (realmOption?.value as string) || 'dreamscythe'
+
   try {
-    console.log('Fetching Blizzard credentials...')
-    const credentials = await getBlizzardCredentials()
-    if (!credentials) throw new Error('Blizzard credentials missing')
+    console.log(`Starting judgement for ${characterName} on ${realm}...`)
 
-    console.log('Fetched credentials. Fetching token...')
-    const token = await getBlizzardToken(credentials.clientId, credentials.clientSecret)
+    const baseMessage = `⚖️ **Judgment for ${characterName} (Realm: ${realm}):**\n\n`
 
-    console.log(`Fetched token. Fetching equipment for ${characterName}...`)
-    const equipment = await getCharacterEquipment(token, 'dreamscythe', characterName)
-    console.log('Equipment received. Count:', equipment.equipped_items.length)
-
-    const itemsList = equipment.equipped_items
-      .map((item) => {
-        return `**${item.slot.name}:** ${item.name}`
-      })
-      .join('\n')
-
-    console.log('Formatted items list.')
-
-    const baseMessage = `⚖️ **Judgment for ${characterName} (Dreamscythe):**\n\n${itemsList}`
-
-    // Gemini Analysis
+    // Bedrock Agent Analysis (Auto-fetches gear via tools)
     let aiAnalysis = ''
     try {
-      aiAnalysis = await analyzeGear(characterName, equipment.equipped_items)
+      aiAnalysis = await analyzeGear(characterName, realm)
     } catch (aiErr) {
-      console.error('Gemini Error', aiErr)
-      aiAnalysis = '\n\n⚠️ AI Analysis timed out or failed.'
+      console.error('Bedrock Agent Error', aiErr)
+      aiAnalysis = '⚠️ AI Analysis timed out or failed.'
     }
 
-    const finalContent = `${baseMessage}\n\n${aiAnalysis}`
+    const finalContent = `${baseMessage}${aiAnalysis}`
 
     // Check for length limit (2000 characters)
+    let contentToSend = finalContent
     if (finalContent.length > 2000) {
       console.warn(`Message too long (${finalContent.length}). Truncating...`)
-      const availableSpace = 2000 - baseMessage.length - 20 // 20 chars buffer for newline and suffix
-      if (availableSpace > 0) {
-        aiAnalysis = aiAnalysis.substring(0, availableSpace) + '... (truncated)'
-      } else {
-        // Edge case: Base message itself is too long (unlikely with just gear list, but possible if user has massive names?)
-        aiAnalysis = ''
-        console.error('Base message too long, omitting AI analysis.')
-      }
+      contentToSend = finalContent.substring(0, 1990) + '... (truncated)'
     }
 
-    const truncatedContent = `${baseMessage}\n\n${aiAnalysis}`
-    await editOriginalResponse(applicationId, interactionToken, truncatedContent)
+    await editOriginalResponse(applicationId, interactionToken, contentToSend)
   } catch (error) {
     console.error('Error processing async judge command:', error)
-    const isNotFound = error instanceof Error && error.message.includes('not found')
-    const errorMessage = isNotFound
-      ? `❌ **Error:** Character "${characterName}" not found on Dreamscythe.`
-      : `❌ **Error:** Failed to fetch character equipment: ${error instanceof Error ? error.message : String(error)}`
-
+    const errorMessage = `❌ **Error:** Judge command failed: ${error instanceof Error ? error.message : String(error)}`
     await editOriginalResponse(applicationId, interactionToken, errorMessage)
   }
 }
@@ -136,5 +106,6 @@ const editOriginalResponse = async (applicationId: string, token: string, conten
     }
   } catch (error) {
     console.error('Failed to send response to Discord:', error)
+    // Don't throw here to avoid SQS retry loops if it's just a network blip writing the response
   }
 }

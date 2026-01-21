@@ -2,14 +2,10 @@ import {
   BedrockAgentRuntimeClient,
   InvokeAgentCommand,
 } from '@aws-sdk/client-bedrock-agent-runtime'
-import { EquippedItem } from './blizzard'
 
 const client = new BedrockAgentRuntimeClient({ region: process.env.AWS_REGION })
 
-export const analyzeGear = async (
-  characterName: string,
-  items: EquippedItem[],
-): Promise<string> => {
+export const analyzeGear = async (characterName: string, realm: string): Promise<string> => {
   const agentId = process.env.BEDROCK_AGENT_ID
   const agentAliasId = process.env.BEDROCK_AGENT_ALIAS_ID
 
@@ -18,13 +14,12 @@ export const analyzeGear = async (
     return '❌ AI Analysis Unavailable: Configuration missing.'
   }
 
-  const itemListString = items
-    .map((item) => `- [${item.slot.name}]: ${item.name} (${item.quality.name})`)
-    .join('\n')
-
-  const prompt = `Character: ${characterName}
-Equipped Gear:
-${itemListString}
+  const prompt = `Please judge the gear for the character "${characterName}" on realm "${realm}".
+First, YOU MUST list the visible equipment you find. Format each item as a Markdown link to WowHead Classic: [Item Name](https://www.wowhead.com/classic/item=ITEM_ID).
+Then, provide:
+- Estimated Average Item Level
+- Quality Analysis
+- Upgrade Suggestions
 `
 
   // Session ID must be alphanumeric/underscores/hyphens, max 100 chars
@@ -37,6 +32,7 @@ ${itemListString}
       agentAliasId,
       sessionId,
       inputText: prompt,
+      enableTrace: false,
     })
 
     const response = await client.send(command)

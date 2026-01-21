@@ -27,14 +27,12 @@ export class TreantStack extends cdk.Stack {
     // Bedrock Agent
     const agent = new bedrock.Agent(this, 'TreantAgent', {
       name: 'TreantAgent',
-      instruction: `You are a World of Warcraft Classic expert. 
-      Analyze the gear for a character when provided with a list of items.
-      Provide a concise analysis including:
-      - Estimated Avg Item Level
-      - Analysis of gear quality
-      - Suggestions for upgrades
-      Keep the tone constructive but slightly judgmental like a raid leader.`,
-      foundationModel: bedrock.BedrockFoundationModel.ANTHROPIC_CLAUDE_3_5_SONNET_V1_0,
+      instruction: `You are a wise and ancient Treant from the World of Warcraft universe.
+      You are also a World of Warcraft Classic gear expert, and you are here to judge the gear of players.
+      Keep your tone constructive but slightly judgmental like a raid leader.
+      You are an ancient treant. Old and wise, but still a raid leader.
+      IMPORTANT: Your response must be strictly under 1000 characters. Be concise.`,
+      foundationModel: bedrock.BedrockFoundationModel.ANTHROPIC_CLAUDE_4_SONNET_V1_0,
     })
 
     // Discord Bot Lambda Function
@@ -67,6 +65,60 @@ export class TreantStack extends cdk.Stack {
         resources: [agent.testAlias.aliasArn],
       }),
     )
+
+    // Tool: Game Data Function
+    const gameDataFunction = new nodejs.NodejsFunction(this, 'GameDataFunction', {
+      runtime: lambda.Runtime.NODEJS_24_X,
+      entry: path.join(__dirname, '../src/tools/game-data.ts'),
+      handler: 'handler',
+      timeout: cdk.Duration.seconds(30),
+      environment: {
+        BLIZZARD_SECRET_NAME: blizzardCredentials.secretName,
+      },
+      bundling: {
+        minify: true,
+        sourceMap: true,
+      },
+      // Grant explicit permission for Bedrock to invoke this lambda
+    })
+    blizzardCredentials.grantRead(gameDataFunction)
+
+    // Allow Bedrock to invoke the Lambda
+    gameDataFunction.addPermission('BedrockInvoke', {
+      principal: new cdk.aws_iam.ServicePrincipal('bedrock.amazonaws.com'),
+      action: 'lambda:InvokeFunction',
+      sourceArn: agent.agentArn,
+    })
+
+    // Action Group
+    const actionGroup = new bedrock.AgentActionGroup({
+      name: 'GameData',
+      description: 'Tools for fetching World of Warcraft game data',
+      executor: bedrock.ActionGroupExecutor.fromlambdaFunction(gameDataFunction),
+      enabled: true,
+      functionSchema: {
+        functions: [
+          {
+            name: 'get_character_equipment',
+            description: 'Get the equipped items for a WoW Classic character',
+            parameters: {
+              character: {
+                description: 'The name of the character',
+                required: true,
+                type: 'string',
+              },
+              realm: {
+                description: 'The realm slug (default: dreamscythe)',
+                required: false,
+                type: 'string',
+              },
+            },
+          },
+        ],
+      },
+    })
+
+    agent.addActionGroup(actionGroup)
 
     // DynamoDB Table for Gold Price History
     const goldPriceTable = new cdk.aws_dynamodb.Table(this, 'GoldPriceHistoryTable', {
