@@ -3,6 +3,7 @@ import { Construct } from 'constructs'
 import * as lambda from 'aws-cdk-lib/aws-lambda'
 import * as nodejs from 'aws-cdk-lib/aws-lambda-nodejs'
 import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources'
+import { bedrock } from '@cdklabs/generative-ai-cdk-constructs'
 import * as path from 'path'
 
 export class TreantStack extends cdk.Stack {
@@ -23,9 +24,17 @@ export class TreantStack extends cdk.Stack {
       },
     )
 
-    // Google API Key Secret
-    const googleApiKey = new cdk.aws_secretsmanager.Secret(this, 'GoogleApiKeySecret', {
-      description: 'API Key for Google Gemini',
+    // Bedrock Agent
+    const agent = new bedrock.Agent(this, 'TreantAgent', {
+      name: 'TreantAgent',
+      instruction: `You are a World of Warcraft Classic expert. 
+      Analyze the gear for a character when provided with a list of items.
+      Provide a concise analysis including:
+      - Estimated Avg Item Level
+      - Analysis of gear quality
+      - Suggestions for upgrades
+      Keep the tone constructive but slightly judgmental like a raid leader.`,
+      foundationModel: bedrock.BedrockFoundationModel.ANTHROPIC_CLAUDE_3_5_SONNET_V1_0,
     })
 
     // Discord Bot Lambda Function
@@ -38,7 +47,8 @@ export class TreantStack extends cdk.Stack {
       environment: {
         DISCORD_PUBLIC_KEY_SECRET_NAME: discordPublicKey.secretName,
         BLIZZARD_SECRET_NAME: blizzardCredentials.secretName,
-        GOOGLE_API_KEY_SECRET_NAME: googleApiKey.secretName,
+        BEDROCK_AGENT_ID: agent.agentId,
+        BEDROCK_AGENT_ALIAS_ID: agent.testAlias.aliasId,
       },
       bundling: {
         minify: true,
@@ -49,7 +59,14 @@ export class TreantStack extends cdk.Stack {
     // Grant Lambda permission to read the secret
     discordPublicKey.grantRead(botFunction)
     blizzardCredentials.grantRead(botFunction)
-    googleApiKey.grantRead(botFunction)
+
+    // Grant Bedrock Agent permissions
+    botFunction.addToRolePolicy(
+      new cdk.aws_iam.PolicyStatement({
+        actions: ['bedrock:InvokeAgent'],
+        resources: [agent.testAlias.aliasArn],
+      }),
+    )
 
     // DynamoDB Table for Gold Price History
     const goldPriceTable = new cdk.aws_dynamodb.Table(this, 'GoldPriceHistoryTable', {
@@ -169,9 +186,9 @@ export class TreantStack extends cdk.Stack {
       description: 'The name of the Blizzard secret in Secrets Manager',
     })
 
-    new cdk.CfnOutput(this, 'GoogleApiKeySecretName', {
-      value: googleApiKey.secretName,
-      description: 'The name of the Google API Key secret in Secrets Manager',
+    new cdk.CfnOutput(this, 'BedrockAgentId', {
+      value: agent.agentId,
+      description: 'The ID of the Bedrock Agent',
     })
 
     new cdk.CfnOutput(this, 'BotFunctionArn', {

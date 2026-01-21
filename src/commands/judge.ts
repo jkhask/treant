@@ -4,7 +4,7 @@ import {
   getBlizzardToken,
   getCharacterEquipment,
 } from '../services/blizzard'
-import { analyzeGear } from '../services/gemini'
+import { analyzeGear } from '../services/bedrock'
 import { CommandPayload, sendCommandToQueue } from '../services/sqs'
 import { DiscordCommandOption, DiscordInteraction } from '../types/discord'
 

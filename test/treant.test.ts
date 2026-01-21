@@ -18,6 +18,11 @@ test('Treant Stack Created', () => {
     Description: 'Client ID and Secret for Blizzard API',
   })
 
+  // Verify Bedrock Agent Created
+  template.hasResourceProperties('AWS::Bedrock::Agent', {
+    AgentName: 'TreantAgent',
+  })
+
   // Verify Lambda Function Created
   template.hasResourceProperties('AWS::Lambda::Function', {
     Runtime: 'nodejs24.x',
@@ -25,6 +30,7 @@ test('Treant Stack Created', () => {
       Variables: {
         DISCORD_PUBLIC_KEY_SECRET_NAME: Match.anyValue(),
         BLIZZARD_SECRET_NAME: Match.anyValue(),
+        BEDROCK_AGENT_ID: Match.anyValue(),
       },
     },
   })
