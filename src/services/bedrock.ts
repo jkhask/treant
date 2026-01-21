@@ -50,6 +50,6 @@ Then, provide:
     return completion
   } catch (error) {
     console.error('Bedrock Agent invocation failed:', error)
-    return '❌ AI Analysis Failed.'
+    return `❌ AI Analysis Failed: ${error instanceof Error ? error.message : String(error)}`
   }
 }

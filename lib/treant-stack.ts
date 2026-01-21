@@ -3,8 +3,9 @@ import { Construct } from 'constructs'
 import * as lambda from 'aws-cdk-lib/aws-lambda'
 import * as nodejs from 'aws-cdk-lib/aws-lambda-nodejs'
 import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources'
-import { bedrock } from '@cdklabs/generative-ai-cdk-constructs'
 import * as path from 'path'
+import { BedrockAgent } from './constructs/bedrock-agent'
+import { VoiceWorker } from './constructs/voice-worker'
 
 export class TreantStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -24,15 +25,9 @@ export class TreantStack extends cdk.Stack {
       },
     )
 
-    // Bedrock Agent
-    const agent = new bedrock.Agent(this, 'TreantAgent', {
-      name: 'TreantAgent',
-      instruction: `You are a wise and ancient Treant from the World of Warcraft universe.
-      You are also a World of Warcraft Classic gear expert, and you are here to judge the gear of players.
-      Keep your tone constructive but slightly judgmental like a raid leader.
-      You are an ancient treant. Old and wise, but still a raid leader.
-      IMPORTANT: Your response must be strictly under 1000 characters. Be concise.`,
-      foundationModel: bedrock.BedrockFoundationModel.ANTHROPIC_CLAUDE_4_SONNET_V1_0,
+    // Bedrock Agent Construct
+    const bedrockAgent = new BedrockAgent(this, 'BedrockAgent', {
+      blizzardCredentialsVerify: blizzardCredentials,
     })
 
     // Discord Bot Lambda Function
@@ -45,8 +40,8 @@ export class TreantStack extends cdk.Stack {
       environment: {
         DISCORD_PUBLIC_KEY_SECRET_NAME: discordPublicKey.secretName,
         BLIZZARD_SECRET_NAME: blizzardCredentials.secretName,
-        BEDROCK_AGENT_ID: agent.agentId,
-        BEDROCK_AGENT_ALIAS_ID: agent.testAlias.aliasId,
+        BEDROCK_AGENT_ID: bedrockAgent.agent.agentId,
+        BEDROCK_AGENT_ALIAS_ID: bedrockAgent.agent.testAlias.aliasId,
       },
       bundling: {
         minify: true,
@@ -62,63 +57,9 @@ export class TreantStack extends cdk.Stack {
     botFunction.addToRolePolicy(
       new cdk.aws_iam.PolicyStatement({
         actions: ['bedrock:InvokeAgent'],
-        resources: [agent.testAlias.aliasArn],
+        resources: [bedrockAgent.agent.testAlias.aliasArn],
       }),
     )
-
-    // Tool: Game Data Function
-    const gameDataFunction = new nodejs.NodejsFunction(this, 'GameDataFunction', {
-      runtime: lambda.Runtime.NODEJS_24_X,
-      entry: path.join(__dirname, '../src/tools/game-data.ts'),
-      handler: 'handler',
-      timeout: cdk.Duration.seconds(30),
-      environment: {
-        BLIZZARD_SECRET_NAME: blizzardCredentials.secretName,
-      },
-      bundling: {
-        minify: true,
-        sourceMap: true,
-      },
-      // Grant explicit permission for Bedrock to invoke this lambda
-    })
-    blizzardCredentials.grantRead(gameDataFunction)
-
-    // Allow Bedrock to invoke the Lambda
-    gameDataFunction.addPermission('BedrockInvoke', {
-      principal: new cdk.aws_iam.ServicePrincipal('bedrock.amazonaws.com'),
-      action: 'lambda:InvokeFunction',
-      sourceArn: agent.agentArn,
-    })
-
-    // Action Group
-    const actionGroup = new bedrock.AgentActionGroup({
-      name: 'GameData',
-      description: 'Tools for fetching World of Warcraft game data',
-      executor: bedrock.ActionGroupExecutor.fromlambdaFunction(gameDataFunction),
-      enabled: true,
-      functionSchema: {
-        functions: [
-          {
-            name: 'get_character_equipment',
-            description: 'Get the equipped items for a WoW Classic character',
-            parameters: {
-              character: {
-                description: 'The name of the character',
-                required: true,
-                type: 'string',
-              },
-              realm: {
-                description: 'The realm slug (default: dreamscythe)',
-                required: false,
-                type: 'string',
-              },
-            },
-          },
-        ],
-      },
-    })
-
-    agent.addActionGroup(actionGroup)
 
     // DynamoDB Table for Gold Price History
     const goldPriceTable = new cdk.aws_dynamodb.Table(this, 'GoldPriceHistoryTable', {
@@ -127,7 +68,6 @@ export class TreantStack extends cdk.Stack {
       billingMode: cdk.aws_dynamodb.BillingMode.PAY_PER_REQUEST,
     })
 
-    goldPriceTable.grantReadWriteData(botFunction)
     goldPriceTable.grantReadWriteData(botFunction)
     botFunction.addEnvironment('GOLD_PRICE_TABLE_NAME', goldPriceTable.tableName)
 
@@ -142,79 +82,12 @@ export class TreantStack extends cdk.Stack {
     botFunction.addEventSource(new SqsEventSource(commandQueue))
     botFunction.addEnvironment('COMMAND_QUEUE_URL', commandQueue.queueUrl)
 
-    // --- Voice Worker Infrastructure ---
+    // Voice Worker Construct
+    const voiceWorker = new VoiceWorker(this, 'VoiceWorker')
 
-    // 1. Voice Command Queue
-    const voiceQueue = new cdk.aws_sqs.Queue(this, 'VoiceCommandQueue', {
-      visibilityTimeout: cdk.Duration.seconds(45), // > worker processing time
-    })
-
-    // Grant Lambda permission to send messages
-    voiceQueue.grantSendMessages(botFunction)
-    botFunction.addEnvironment('VOICE_QUEUE_URL', voiceQueue.queueUrl)
-
-    // 2. VPC for Fargate (Public subnets only for cost efficiency/simplicity)
-    const vpc = new cdk.aws_ec2.Vpc(this, 'TreantVpc', {
-      maxAzs: 2,
-      natGateways: 0,
-      subnetConfiguration: [
-        {
-          name: 'Public',
-          subnetType: cdk.aws_ec2.SubnetType.PUBLIC,
-        },
-      ],
-      // Avoid creating unnecessary endpoints for this simple bot to save cost
-    })
-
-    // 3. ECS Cluster
-    const cluster = new cdk.aws_ecs.Cluster(this, 'TreantCluster', {
-      vpc: vpc,
-    })
-
-    // 4. Secret for Discord Token (Full Token)
-    const discordTokenSecret = new cdk.aws_secretsmanager.Secret(this, 'DiscordTokenSecret', {
-      description: 'Discord Bot Token for Voice Worker',
-      secretName: 'TreantDiscordToken',
-    })
-
-    // 5. Fargate Task Definition
-    const taskDefinition = new cdk.aws_ecs.FargateTaskDefinition(this, 'VoiceWorkerTask', {
-      memoryLimitMiB: 512,
-      cpu: 256,
-    })
-
-    // Grant Task permissions
-    discordTokenSecret.grantRead(taskDefinition.taskRole)
-    voiceQueue.grantConsumeMessages(taskDefinition.taskRole)
-
-    // Grant Polly permission
-    taskDefinition.taskRole.addToPrincipalPolicy(
-      new cdk.aws_iam.PolicyStatement({
-        actions: ['polly:SynthesizeSpeech'],
-        resources: ['*'],
-      }),
-    )
-
-    // 6. Container
-    taskDefinition.addContainer('VoiceWorkerContainer', {
-      image: cdk.aws_ecs.ContainerImage.fromAsset(path.join(__dirname, '../src/voice-worker')),
-      logging: cdk.aws_ecs.LogDrivers.awsLogs({ streamPrefix: 'TreantVoiceWorker' }),
-      environment: {
-        QUEUE_URL: voiceQueue.queueUrl,
-        DISCORD_TOKEN_SECRET_NAME: discordTokenSecret.secretName,
-        AWS_REGION: this.region,
-      },
-    })
-
-    // 7. Fargate Service
-    new cdk.aws_ecs.FargateService(this, 'VoiceWorkerService', {
-      cluster,
-      taskDefinition,
-      assignPublicIp: true, // Needed for outgoing internet access (Discord/SQS) since we have no NAT
-      desiredCount: 1, // Always on
-    })
-
-    // --- End Voice Worker Infrastructure ---
+    // Grant Lambda permission to send messages to Voice Queue
+    voiceWorker.voiceQueue.grantSendMessages(botFunction)
+    botFunction.addEnvironment('VOICE_QUEUE_URL', voiceWorker.voiceQueue.queueUrl)
 
     // API Gateway to expose the Lambda
     const api = new cdk.aws_apigateway.LambdaRestApi(this, 'DiscordBotApi', {
@@ -239,7 +112,7 @@ export class TreantStack extends cdk.Stack {
     })
 
     new cdk.CfnOutput(this, 'BedrockAgentId', {
-      value: agent.agentId,
+      value: bedrockAgent.agent.agentId,
       description: 'The ID of the Bedrock Agent',
     })
 

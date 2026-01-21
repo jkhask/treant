@@ -58,7 +58,7 @@ export const processJudgeCommandAsync = async (payload: CommandPayload) => {
   try {
     console.log(`Starting judgement for ${characterName} on ${realm}...`)
 
-    const baseMessage = `⚖️ **Judgment for ${characterName} (Realm: ${realm}):**\n\n`
+    const baseMessage = `⚖️ **Judgment for ${characterName}:**\n\n`
 
     // Bedrock Agent Analysis (Auto-fetches gear via tools)
     let aiAnalysis = ''
