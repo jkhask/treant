@@ -1,12 +1,21 @@
 import QuickChart from 'quickchart-js'
 import { PriceRecord } from '../db/price-history'
 
+const getETOffset = (): number => {
+  const now = new Date()
+  const utcStr = now.toLocaleString('en-US', { timeZone: 'UTC' })
+  const nyStr = now.toLocaleString('en-US', { timeZone: 'America/New_York' })
+  return new Date(nyStr).getTime() - new Date(utcStr).getTime()
+}
+
 export const generateGoldChartUrl = (data: PriceRecord[], amount: number): string => {
   const chart = new QuickChart()
+  const offset = getETOffset()
 
   // Create data points with x (timestamp) and y (price)
+  // Shift timestamp by offset to show ET time on UTC chart
   const chartData = data.map((record) => ({
-    x: record.timestamp,
+    x: record.timestamp + offset,
     y: Number((record.price * amount).toFixed(2)),
   }))
 
@@ -47,7 +56,7 @@ export const generateGoldChartUrl = (data: PriceRecord[], amount: number): strin
               // unit: 'day', // Let Chart.js decide the unit automatically
               displayFormats: {
                 day: 'MMM D',
-                hour: 'hA',
+                hour: 'MMM D, hA', // Show date with hour (e.g. Jan 21, 3PM)
               },
               tooltipFormat: 'MMM D, h:mm a',
             },
