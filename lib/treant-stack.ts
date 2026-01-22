@@ -1,13 +1,13 @@
 import * as cdk from 'aws-cdk-lib'
 import { Construct } from 'constructs'
-import * as lambda from 'aws-cdk-lib/aws-lambda'
-import * as nodejs from 'aws-cdk-lib/aws-lambda-nodejs'
-import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources'
-import * as path from 'path'
+import { VoiceWorker } from './constructs/voice-worker'
+import { DiscordBot } from './constructs/discord-bot'
 
 export class TreantStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props)
+
+    // --- Shared Resources ---
 
     // Discord Public Key Secret
     const discordPublicKey = new cdk.aws_secretsmanager.Secret(this, 'DiscordPublicKeySecret', {
@@ -28,29 +28,6 @@ export class TreantStack extends cdk.Stack {
       description: 'API Key for Google Gemini',
     })
 
-    // Discord Bot Lambda Function
-    const botFunction = new nodejs.NodejsFunction(this, 'DiscordBotFunction', {
-      runtime: lambda.Runtime.NODEJS_24_X,
-      entry: path.join(__dirname, '../src/index.ts'),
-      handler: 'handler',
-      timeout: cdk.Duration.seconds(30),
-      memorySize: 1024,
-      environment: {
-        DISCORD_PUBLIC_KEY_SECRET_NAME: discordPublicKey.secretName,
-        BLIZZARD_SECRET_NAME: blizzardCredentials.secretName,
-        GOOGLE_API_KEY_SECRET_NAME: googleApiKey.secretName,
-      },
-      bundling: {
-        minify: true,
-        sourceMap: true,
-      },
-    })
-
-    // Grant Lambda permission to read the secret
-    discordPublicKey.grantRead(botFunction)
-    blizzardCredentials.grantRead(botFunction)
-    googleApiKey.grantRead(botFunction)
-
     // DynamoDB Table for Gold Price History
     const goldPriceTable = new cdk.aws_dynamodb.Table(this, 'GoldPriceHistoryTable', {
       partitionKey: { name: 'type', type: cdk.aws_dynamodb.AttributeType.STRING },
@@ -58,104 +35,24 @@ export class TreantStack extends cdk.Stack {
       billingMode: cdk.aws_dynamodb.BillingMode.PAY_PER_REQUEST,
     })
 
-    goldPriceTable.grantReadWriteData(botFunction)
-    goldPriceTable.grantReadWriteData(botFunction)
-    botFunction.addEnvironment('GOLD_PRICE_TABLE_NAME', goldPriceTable.tableName)
+    // --- Constructs ---
 
-    // Discord Command Queue (SQS) - for async processing like /judge
-    const commandQueue = new cdk.aws_sqs.Queue(this, 'DiscordCommandQueue', {
-      visibilityTimeout: cdk.Duration.seconds(30), // Lambda timeout
+    // 1. Voice Worker
+    const voiceWorker = new VoiceWorker(this, 'VoiceWorker')
+
+    // 2. Discord Bot
+    const discordBot = new DiscordBot(this, 'DiscordBot', {
+      discordPublicKey,
+      blizzardCredentials,
+      googleApiKey,
+      goldPriceTable,
+      voiceQueue: voiceWorker.voiceQueue,
     })
 
-    // Grant permissions and add event source
-    commandQueue.grantSendMessages(botFunction)
-    commandQueue.grantConsumeMessages(botFunction)
-    botFunction.addEventSource(new SqsEventSource(commandQueue))
-    botFunction.addEnvironment('COMMAND_QUEUE_URL', commandQueue.queueUrl)
+    // --- Outputs ---
 
-    // --- Voice Worker Infrastructure ---
-
-    // 1. Voice Command Queue
-    const voiceQueue = new cdk.aws_sqs.Queue(this, 'VoiceCommandQueue', {
-      visibilityTimeout: cdk.Duration.seconds(45), // > worker processing time
-    })
-
-    // Grant Lambda permission to send messages
-    voiceQueue.grantSendMessages(botFunction)
-    botFunction.addEnvironment('VOICE_QUEUE_URL', voiceQueue.queueUrl)
-
-    // 2. VPC for Fargate (Public subnets only for cost efficiency/simplicity)
-    const vpc = new cdk.aws_ec2.Vpc(this, 'TreantVpc', {
-      maxAzs: 2,
-      natGateways: 0,
-      subnetConfiguration: [
-        {
-          name: 'Public',
-          subnetType: cdk.aws_ec2.SubnetType.PUBLIC,
-        },
-      ],
-      // Avoid creating unnecessary endpoints for this simple bot to save cost
-    })
-
-    // 3. ECS Cluster
-    const cluster = new cdk.aws_ecs.Cluster(this, 'TreantCluster', {
-      vpc: vpc,
-    })
-
-    // 4. Secret for Discord Token (Full Token)
-    const discordTokenSecret = new cdk.aws_secretsmanager.Secret(this, 'DiscordTokenSecret', {
-      description: 'Discord Bot Token for Voice Worker',
-      secretName: 'TreantDiscordToken',
-    })
-
-    // 5. Fargate Task Definition
-    const taskDefinition = new cdk.aws_ecs.FargateTaskDefinition(this, 'VoiceWorkerTask', {
-      memoryLimitMiB: 512,
-      cpu: 256,
-    })
-
-    // Grant Task permissions
-    discordTokenSecret.grantRead(taskDefinition.taskRole)
-    voiceQueue.grantConsumeMessages(taskDefinition.taskRole)
-
-    // Grant Polly permission
-    taskDefinition.taskRole.addToPrincipalPolicy(
-      new cdk.aws_iam.PolicyStatement({
-        actions: ['polly:SynthesizeSpeech'],
-        resources: ['*'],
-      }),
-    )
-
-    // 6. Container
-    taskDefinition.addContainer('VoiceWorkerContainer', {
-      image: cdk.aws_ecs.ContainerImage.fromAsset(path.join(__dirname, '../src/voice-worker')),
-      logging: cdk.aws_ecs.LogDrivers.awsLogs({ streamPrefix: 'TreantVoiceWorker' }),
-      environment: {
-        QUEUE_URL: voiceQueue.queueUrl,
-        DISCORD_TOKEN_SECRET_NAME: discordTokenSecret.secretName,
-        AWS_REGION: this.region,
-      },
-    })
-
-    // 7. Fargate Service
-    new cdk.aws_ecs.FargateService(this, 'VoiceWorkerService', {
-      cluster,
-      taskDefinition,
-      assignPublicIp: true, // Needed for outgoing internet access (Discord/SQS) since we have no NAT
-      desiredCount: 1, // Always on
-    })
-
-    // --- End Voice Worker Infrastructure ---
-
-    // API Gateway to expose the Lambda
-    const api = new cdk.aws_apigateway.LambdaRestApi(this, 'DiscordBotApi', {
-      handler: botFunction,
-      // proxy: true is default, ensuring we get headers for verification
-    })
-
-    // Output the API URL and Secret Name
     new cdk.CfnOutput(this, 'ApiUrl', {
-      value: api.url,
+      value: discordBot.apiUrl,
       description: 'The URL of the API Gateway',
     })
 
@@ -175,7 +72,7 @@ export class TreantStack extends cdk.Stack {
     })
 
     new cdk.CfnOutput(this, 'BotFunctionArn', {
-      value: botFunction.functionArn,
+      value: discordBot.botFunction.functionArn,
       description: 'The ARN of the Discord Bot Lambda function',
     })
   }

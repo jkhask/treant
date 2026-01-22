@@ -44,7 +44,7 @@ export const generateGoldChartUrl = (data: PriceRecord[], amount: number): strin
           {
             type: 'time',
             time: {
-              unit: 'day',
+              // unit: 'day', // Let Chart.js decide the unit automatically
               displayFormats: {
                 day: 'MMM D',
                 hour: 'hA',

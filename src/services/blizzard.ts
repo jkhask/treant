@@ -58,69 +58,6 @@ export const getBlizzardToken = async (clientId: string, clientSecret: string): 
   return data.access_token
 }
 
-export const getWoWTokenPrice = async (accessToken: string): Promise<number> => {
-  // US Region, Static Namespace
-  const url = 'https://us.api.blizzard.com/data/wow/token/index?namespace=dynamic-us&locale=en_US'
-  const response = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  })
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch WoW Token price: ${response.statusText}`)
-  }
-
-  const data = (await response.json()) as { price: number }
-  return data.price
-}
-
-export const getClassicAuctionHouseIndex = async (
-  accessToken: string,
-  connectedRealmId: number,
-): Promise<AuctionHouseIndex> => {
-  // Classic Namespace: dynamic-classic-us for Anniversary
-  const url = `https://us.api.blizzard.com/data/wow/connected-realm/${connectedRealmId}/auctions/index?namespace=dynamic-classic-us&locale=en_US`
-  const response = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  })
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch Classic AH Index: ${response.statusText}`)
-  }
-
-  return (await response.json()) as AuctionHouseIndex
-}
-
-export interface AuctionHouseData {
-  id: number
-  item: { id: number }
-  buyout: number
-  quantity: number
-  time_left: string
-}
-
-export const getAuctionHouseData = async (
-  accessToken: string,
-  connectedRealmId: number,
-  auctionHouseId: number,
-): Promise<AuctionHouseData[]> => {
-  const url = `https://us.api.blizzard.com/data/wow/connected-realm/${connectedRealmId}/auctions/${auctionHouseId}?namespace=dynamic-classic-us&locale=en_US`
-  const response = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  })
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch Auction House Data: ${response.statusText}`)
-  }
-
-  return (await response.json()) as AuctionHouseData[]
-}
-
 export interface EquippedItem {
   slot: { name: string }
   item: { id: number }

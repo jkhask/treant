@@ -71,13 +71,13 @@ export const processJudgeCommandAsync = async (payload: CommandPayload) => {
 
     const itemsList = equipment.equipped_items
       .map((item) => {
-        return `**${item.slot.name}:** ${item.name}`
+        // Use < > to suppress embeds
+        const itemLink = `[${item.name}](<https://www.wowhead.com/classic/item=${item.item.id}>)`
+        return `**${item.slot.name}:** ${itemLink}`
       })
       .join('\n')
 
     console.log('Formatted items list.')
-
-    const baseMessage = `⚖️ **Judgment for ${characterName} (Dreamscythe):**\n\n${itemsList}`
 
     // Gemini Analysis
     let aiAnalysis = ''
@@ -85,26 +85,33 @@ export const processJudgeCommandAsync = async (payload: CommandPayload) => {
       aiAnalysis = await analyzeGear(characterName, equipment.equipped_items)
     } catch (aiErr) {
       console.error('Gemini Error', aiErr)
-      aiAnalysis = '\n\n⚠️ AI Analysis timed out or failed.'
+      aiAnalysis = '⚠️ AI Analysis timed out or failed.'
     }
 
-    const finalContent = `${baseMessage}\n\n${aiAnalysis}`
+    // Construct Embed
+    const embed: any = {
+      title: `⚖️ Judgment for ${characterName} (Dreamscythe)`,
+      color: 0xffd700, // Gold color
+      description: itemsList, // Limit: 4096 chars
+      fields: [],
+    }
 
-    // Check for length limit (2000 characters)
-    if (finalContent.length > 2000) {
-      console.warn(`Message too long (${finalContent.length}). Truncating...`)
-      const availableSpace = 2000 - baseMessage.length - 20 // 20 chars buffer for newline and suffix
-      if (availableSpace > 0) {
-        aiAnalysis = aiAnalysis.substring(0, availableSpace) + '... (truncated)'
+    if (aiAnalysis) {
+      // Field value limit is 1024 characters
+      if (aiAnalysis.length > 1024) {
+        embed.fields.push({
+          name: '🔮 AI Analysis',
+          value: aiAnalysis.substring(0, 1021) + '...',
+        })
       } else {
-        // Edge case: Base message itself is too long (unlikely with just gear list, but possible if user has massive names?)
-        aiAnalysis = ''
-        console.error('Base message too long, omitting AI analysis.')
+        embed.fields.push({
+          name: '🔮 AI Analysis',
+          value: aiAnalysis,
+        })
       }
     }
 
-    const truncatedContent = `${baseMessage}\n\n${aiAnalysis}`
-    await editOriginalResponse(applicationId, interactionToken, truncatedContent)
+    await editOriginalResponse(applicationId, interactionToken, { embeds: [embed] })
   } catch (error) {
     console.error('Error processing async judge command:', error)
     const isNotFound = error instanceof Error && error.message.includes('not found')
@@ -112,11 +119,15 @@ export const processJudgeCommandAsync = async (payload: CommandPayload) => {
       ? `❌ **Error:** Character "${characterName}" not found on Dreamscythe.`
       : `❌ **Error:** Failed to fetch character equipment: ${error instanceof Error ? error.message : String(error)}`
 
-    await editOriginalResponse(applicationId, interactionToken, errorMessage)
+    await editOriginalResponse(applicationId, interactionToken, { content: errorMessage })
   }
 }
 
-const editOriginalResponse = async (applicationId: string, token: string, content: string) => {
+const editOriginalResponse = async (
+  applicationId: string,
+  token: string,
+  payload: { content?: string; embeds?: any[] },
+) => {
   const url = `https://discord.com/api/v10/webhooks/${applicationId}/${token}/messages/@original`
   console.log('Sending response to Discord...')
   try {
@@ -125,9 +136,7 @@ const editOriginalResponse = async (applicationId: string, token: string, conten
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        content: content,
-      }),
+      body: JSON.stringify(payload),
     })
     console.log(`Discord response status: ${response.status}`)
     if (!response.ok) {
