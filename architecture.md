@@ -52,7 +52,7 @@ graph TB
 
     %% API Lambda Logic
     ApiLambda -->|1. Acknowledge/Reply| Discord
-    ApiLambda -->|2. Dispatch Async Job (Judge/Gold)| CmdQueue
+    ApiLambda -->|"2. Dispatch Async Job (Judge/Gold)"| CmdQueue
     ApiLambda -->|3. Dispatch Voice Job| VoiceQueue
     ApiLambda -.->|Read Key| Secrets
 
