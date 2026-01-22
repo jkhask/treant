@@ -15,10 +15,11 @@ The bot operates under the `/treant` slash command namespace:
 
 This project demonstrates a robust, scalable architecture on AWS:
 
-1.  **Discord Interactions**: Handled by Amazon API Gateway and a synchronous Lambda function. This ensures responses are returned within Discord's 3-second timeout.
-2.  **Asynchronous Processing**: Long-running tasks (like AI analysis or fetching extensive API data) are offloaded to **Amazon SQS**.
-3.  **Voice Worker**: A dedicated **Fargate** service listens to the SQS queue to handle persistent voice connections, which cannot be managed by ephemeral Lambda functions.
-4.  **Data Storage**:
+1.  **API Handler**: A lightweight, synchronous Lambda function that handles Discord interactions. It verifies signatures, handles PINGs, and acts as a high-throughput entry point, ensuring responses meet Discord's 3-second timeout.
+2.  **Worker Lambda**: An asynchronous Lambda function that processes heavy commands (like `/judge`). It triggers off **Amazon SQS** events, allowing for longer processing times (up to 60s) without blocking the API.
+3.  **Asynchronous Processing**: Long-running tasks (like AI analysis or fetching extensive API data) are offloaded to **Amazon SQS**.
+4.  **Voice Worker**: A dedicated **Fargate** service listens to the SQS queue to handle persistent voice connections, which cannot be managed by ephemeral Lambda functions.
+5.  **Data Storage**:
     - **Secrets Manager**: Securely stores API keys (Discord, Blizzard, Google).
     - **DynamoDB**: Stores gold price history for chart generation.
 

@@ -1,32 +1,9 @@
-import { APIGatewayProxyEvent, APIGatewayProxyResult, SQSEvent } from 'aws-lambda'
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
 import { InteractionType, InteractionResponseType } from 'discord-interactions'
 import { getPublicKey, verifyDiscordSignature } from './lib/discord/auth'
 import { dispatchCommand } from './commands'
-import { CommandPayload } from './services/sqs'
-import { processJudgeCommandAsync } from './commands/judge'
 
-export const handler = async (
-  event: APIGatewayProxyEvent | SQSEvent,
-): Promise<APIGatewayProxyResult | void> => {
-  // Check for SQS Event
-  if ('Records' in event) {
-    console.log('Received SQS Event:', JSON.stringify(event, null, 2))
-    for (const record of event.Records) {
-      try {
-        const payload = JSON.parse(record.body) as CommandPayload
-        console.log('Processing SQS Message:', payload)
-
-        if (payload.command === 'judge') {
-          await processJudgeCommandAsync(payload)
-        }
-      } catch (error) {
-        console.error('Error processing SQS record:', error)
-      }
-    }
-    return
-  }
-
-  // API Gateway Event
+export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   console.log('Received API Gateway Event:', JSON.stringify(event, null, 2))
 
   try {
@@ -71,6 +48,7 @@ export const handler = async (
     }
 
     // Dispatch Command
+    // Sync commands are handled here. Async commands (like judge) queue to SQS and return DEFERRED.
     const response = await dispatchCommand(interaction)
     if (response) {
       return {

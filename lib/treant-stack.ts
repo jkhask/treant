@@ -71,9 +71,14 @@ export class TreantStack extends cdk.Stack {
       description: 'The name of the Google API Key secret in Secrets Manager',
     })
 
-    new cdk.CfnOutput(this, 'BotFunctionArn', {
-      value: discordBot.botFunction.functionArn,
-      description: 'The ARN of the Discord Bot Lambda function',
+    new cdk.CfnOutput(this, 'ApiFunctionArn', {
+      value: discordBot.apiFunction.functionArn,
+      description: 'The ARN of the Api Handler Lambda function',
+    })
+
+    new cdk.CfnOutput(this, 'WorkerFunctionArn', {
+      value: discordBot.workerFunction.functionArn,
+      description: 'The ARN of the Worker Lambda function',
     })
   }
 }
