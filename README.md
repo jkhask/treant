@@ -7,7 +7,7 @@ A powerful Discord bot built with AWS CDK, TypeScript, and a hybrid serverless a
 The bot operates under the `/treant` slash command namespace:
 
 - **/treant judge [character]**: Analyzes a WoW Classic character's gear on the Dreamscythe realm. It fetches data from the Blizzard API and uses Google's Gemini AI to provide a "roast" or constructive analysis of their equipment.
-- **/treant gold [amount]**: Checks current WoW Classic gold prices from G2G, calculates the cost for a specific amount, and displays a historical price chart. It also announces the price in voice chat.
+- **/treant gold [amount]**: Checks current WoW Classic gold prices from G2G, calculates the cost for a specific amount, and displays a historical price chart. (Asynchronous)
 - **/treant speak [text]**: Joins the user's voice channel and speaks the provided text using AWS Polly (Neural Engine).
 - **/treant pun**: Tells a tree-related pun. (Default command)
 

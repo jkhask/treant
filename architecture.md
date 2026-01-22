@@ -52,7 +52,7 @@ graph TB
 
     %% API Lambda Logic
     ApiLambda -->|1. Acknowledge/Reply| Discord
-    ApiLambda -->|2. Dispatch Async Job| CmdQueue
+    ApiLambda -->|2. Dispatch Async Job (Judge/Gold)| CmdQueue
     ApiLambda -->|3. Dispatch Voice Job| VoiceQueue
     ApiLambda -.->|Read Key| Secrets
 
@@ -98,7 +98,7 @@ graph TB
 - **Resource**: AWS Lambda (`src/worker.ts`)
 - **Trigger**: SQS (`DiscordCommandQueue`)
 - **Responsibility**:
-  - Handles long-running logic (e.g., fetching WoW character data, generating AI responses).
+  - Handles long-running logic (e.g., fetching WoW character data, gold prices, generating AI responses).
   - Uses **Gemini AI** for analysis and **Blizzard API** for game data.
   - Persists data to **DynamoDB**.
   - Updates the original Discord interaction via webhook.

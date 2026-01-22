@@ -39,6 +39,7 @@ export class DiscordBot extends Construct {
         DISCORD_PUBLIC_KEY_SECRET_NAME: props.discordPublicKey.secretName,
         COMMAND_QUEUE_URL: commandQueue.queueUrl,
         VOICE_QUEUE_URL: props.voiceQueue.queueUrl,
+        GOLD_PRICE_TABLE_NAME: props.goldPriceTable.tableName,
       },
       bundling: {
         minify: true,
@@ -50,6 +51,7 @@ export class DiscordBot extends Construct {
     props.discordPublicKey.grantRead(apiFunction)
     commandQueue.grantSendMessages(apiFunction)
     props.voiceQueue.grantSendMessages(apiFunction)
+    props.goldPriceTable.grantReadWriteData(apiFunction)
 
     // --- 3. Worker Lambda ---
     // Heavy lifting, handles deferred responses (AI, etc.)
