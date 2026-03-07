@@ -8,7 +8,10 @@ const getETOffset = (): number => {
   return new Date(nyStr).getTime() - new Date(utcStr).getTime()
 }
 
-export const generateGoldChartUrl = (data: PriceRecord[], amount: number): string => {
+export const generateGoldChartUrl = async (
+  data: PriceRecord[],
+  amount: number,
+): Promise<string> => {
   const chart = new QuickChart()
   const offset = getETOffset()
 
@@ -98,5 +101,5 @@ export const generateGoldChartUrl = (data: PriceRecord[], amount: number): strin
   chart.setHeight(350)
   chart.setDevicePixelRatio(2.0) // Higher resolution
 
-  return chart.getUrl()
+  return await chart.getShortUrl()
 }

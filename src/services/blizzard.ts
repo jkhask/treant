@@ -74,8 +74,8 @@ export const getCharacterEquipment = async (
   realmSlug: string,
   characterName: string,
 ): Promise<CharacterEquipment> => {
-  // Classic Era Anniversary Namespace: profile-classic-us (verified via script)
-  const url = `https://us.api.blizzard.com/profile/wow/character/${realmSlug}/${characterName.toLowerCase()}/equipment?namespace=profile-classic-us&locale=en_US&t=${Date.now()}`
+  // Classic Era Anniversary Namespace: profile-classicann-us (verified via script)
+  const url = `https://us.api.blizzard.com/profile/wow/character/${realmSlug}/${characterName.toLowerCase()}/equipment?namespace=profile-classicann-us&locale=en_US&t=${Date.now()}`
 
   console.log(`[Blizzard] Requesting equipment from: ${url}`)
 

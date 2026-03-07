@@ -49,7 +49,7 @@ export const processGoldCommandAsync = async (payload: any) => {
 
     // Generate Chart
     const history = await getGoldPriceHistory(24)
-    const chartUrl = generateGoldChartUrl(history, amount)
+    const chartUrl = await generateGoldChartUrl(history, amount)
 
     // Send to Voice Worker
     const { guildId, userId } = payload

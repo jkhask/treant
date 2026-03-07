@@ -62,6 +62,7 @@ graph TB
     WorkerLambda -->|Generate Content| Gemini
     WorkerLambda -->|Read/Write| DDB
     WorkerLambda -->|Update Interaction| Discord
+    WorkerLambda -->|Dispatch Voice Job| VoiceQueue
     WorkerLambda -.->|Read Credentials| Secrets
 
     %% Voice Logic
@@ -101,6 +102,7 @@ graph TB
   - Handles long-running logic (e.g., fetching WoW character data, gold prices, generating AI responses).
   - Uses **Gemini AI** for analysis and **Blizzard API** for game data.
   - Persists data to **DynamoDB**.
+  - Dispatches voice jobs to **Voice Queue**.
   - Updates the original Discord interaction via webhook.
 
 ### 3. Voice Worker (Stateful)
