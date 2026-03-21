@@ -54,7 +54,7 @@ export const handleJudgeCommand = async (
 // ASYNC HANDLER: Called by SQS Trigger
 // Performs the actual work and edits the original message
 export const processJudgeCommandAsync = async (payload: CommandPayload) => {
-  const { applicationId, interactionToken, options } = payload
+  const { applicationId, interactionToken, options = [] } = payload
   const characterOption = options.find((o: any) => o.name === 'character')
   const characterName = characterOption?.value as string
 

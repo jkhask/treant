@@ -2,7 +2,8 @@ import { InteractionType } from 'discord-interactions'
 import { handleGoldCommand } from './gold'
 import { handleSpeakCommand } from './speak'
 import { handlePunCommand } from './pun'
-import { handleJudgeCommand } from './judge'
+import { handleKarazhanCommand } from './karazhan'
+// import { handleJudgeCommand } from './judge'
 import { DiscordInteraction } from '../types/discord'
 
 export const dispatchCommand = async (interaction: DiscordInteraction) => {
@@ -29,9 +30,13 @@ export const dispatchCommand = async (interaction: DiscordInteraction) => {
     return await handleSpeakCommand(subcommand, interaction)
   }
 
-  if (subcommand.name === 'judge') {
-    return await handleJudgeCommand(subcommand, interaction)
+  if (subcommand.name === 'karazhan') {
+    return await handleKarazhanCommand(interaction)
   }
+
+  // if (subcommand.name === 'judge') {
+  //   return await handleJudgeCommand(subcommand, interaction)
+  // }
 
   return null
 }

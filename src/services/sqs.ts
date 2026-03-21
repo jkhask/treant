@@ -1,16 +1,17 @@
 import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs'
+import { DiscordCommandOption } from '../types/discord'
 
 export const sqsClient = new SQSClient({})
 const COMMAND_QUEUE_URL = process.env.COMMAND_QUEUE_URL
 const VOICE_QUEUE_URL = process.env.VOICE_QUEUE_URL
 
 export interface CommandPayload {
-  command: 'judge' | 'gold'
+  command: 'judge' | 'gold' | 'karazhan'
   applicationId: string
   interactionToken: string
   guildId?: string
   userId?: string
-  options: any[]
+  options?: DiscordCommandOption[]
 }
 
 export const sendCommandToQueue = async (payload: CommandPayload) => {

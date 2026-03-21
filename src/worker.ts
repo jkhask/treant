@@ -2,6 +2,7 @@ import { SQSEvent } from 'aws-lambda'
 import { CommandPayload } from './services/sqs'
 import { processJudgeCommandAsync } from './commands/judge'
 import { processGoldCommandAsync } from './commands/gold'
+import { processKarazhanCommandAsync } from './commands/karazhan'
 
 export const handler = async (event: SQSEvent): Promise<void> => {
   console.log('Received SQS Event:', JSON.stringify(event, null, 2))
@@ -14,6 +15,8 @@ export const handler = async (event: SQSEvent): Promise<void> => {
         await processJudgeCommandAsync(payload)
       } else if (payload.command === 'gold') {
         await processGoldCommandAsync(payload)
+      } else if (payload.command === 'karazhan') {
+        await processKarazhanCommandAsync(payload)
       }
       // Add other async command handlers here
     } catch (error) {
