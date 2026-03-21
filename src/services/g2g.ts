@@ -4,9 +4,11 @@ interface G2GResponse {
   }
 }
 
+// const kangId = 'G1744089054578IF'
+const cnlTeamId = 'G1744088746970DY'
+
 export const getG2GGoldPrice = async (): Promise<number> => {
-  const url =
-    'https://sls.g2g.com/offer/G1744089054578IF?currency=USD&country=US&include_out_of_stock=1'
+  const url = `https://sls.g2g.com/offer/${cnlTeamId}?currency=USD&country=US&include_out_of_stock=1`
 
   try {
     const response = await fetch(url)

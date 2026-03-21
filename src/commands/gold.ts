@@ -64,7 +64,7 @@ export const processGoldCommandAsync = async (payload: any) => {
     }
 
     await editOriginalResponse(applicationId, interactionToken, {
-      content: `💰 **Kang17 Gold Price:** $${totalPrice} for ${amount.toLocaleString()} gold ($${unitPrice.toFixed(
+      content: `💰 **CNLTeam Gold Price:** $${totalPrice} for ${amount.toLocaleString()} gold ($${unitPrice.toFixed(
         4,
       )}/gold)`,
       embeds: [
