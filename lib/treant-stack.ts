@@ -1,6 +1,5 @@
 import * as cdk from 'aws-cdk-lib'
 import { Construct } from 'constructs'
-import { VoiceWorker } from './constructs/voice-worker'
 import { DiscordBot } from './constructs/discord-bot'
 
 export class TreantStack extends cdk.Stack {
@@ -37,16 +36,11 @@ export class TreantStack extends cdk.Stack {
 
     // --- Constructs ---
 
-    // 1. Voice Worker
-    const voiceWorker = new VoiceWorker(this, 'VoiceWorker')
-
-    // 2. Discord Bot
     const discordBot = new DiscordBot(this, 'DiscordBot', {
       discordPublicKey,
       blizzardCredentials,
       googleApiKey,
       goldPriceTable,
-      voiceQueue: voiceWorker.voiceQueue,
     })
 
     // --- Outputs ---

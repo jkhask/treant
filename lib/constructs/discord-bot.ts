@@ -10,7 +10,6 @@ interface DiscordBotProps {
   blizzardCredentials: cdk.aws_secretsmanager.ISecret
   googleApiKey: cdk.aws_secretsmanager.ISecret
   goldPriceTable: cdk.aws_dynamodb.ITable
-  voiceQueue: cdk.aws_sqs.IQueue
 }
 
 export class DiscordBot extends Construct {
@@ -38,7 +37,6 @@ export class DiscordBot extends Construct {
       environment: {
         DISCORD_PUBLIC_KEY_SECRET_NAME: props.discordPublicKey.secretName,
         COMMAND_QUEUE_URL: commandQueue.queueUrl,
-        VOICE_QUEUE_URL: props.voiceQueue.queueUrl,
         GOLD_PRICE_TABLE_NAME: props.goldPriceTable.tableName,
       },
       bundling: {
@@ -50,7 +48,6 @@ export class DiscordBot extends Construct {
     // Grant API permissions
     props.discordPublicKey.grantRead(apiFunction)
     commandQueue.grantSendMessages(apiFunction)
-    props.voiceQueue.grantSendMessages(apiFunction)
     props.goldPriceTable.grantReadWriteData(apiFunction)
 
     // --- 3. Worker Lambda ---
@@ -65,10 +62,6 @@ export class DiscordBot extends Construct {
         BLIZZARD_SECRET_NAME: props.blizzardCredentials.secretName,
         GOOGLE_API_KEY_SECRET_NAME: props.googleApiKey.secretName,
         GOLD_PRICE_TABLE_NAME: props.goldPriceTable.tableName,
-        // Worker might need to send voice commands too? Not currently, but good practice if it generates voice.
-        // For now, only API sends to voice queue directly via dispatch -> speak command.
-        // But if async judge wants to speak, it would need this. Let's add it.
-        VOICE_QUEUE_URL: props.voiceQueue.queueUrl,
       },
       bundling: {
         minify: true,
@@ -80,7 +73,6 @@ export class DiscordBot extends Construct {
     props.blizzardCredentials.grantRead(workerFunction)
     props.googleApiKey.grantRead(workerFunction)
     props.goldPriceTable.grantReadWriteData(workerFunction)
-    props.voiceQueue.grantSendMessages(workerFunction)
 
     // Wire Worker to SQS
     workerFunction.addEventSource(new SqsEventSource(commandQueue))

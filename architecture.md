@@ -32,12 +32,7 @@ graph TB
             WorkerLambda["Worker Lambda<br/>(Node.js)"]
         end
 
-        subgraph "Voice Service"
-            VoiceQueue[SQS: Voice Queue]
-            VoiceCluster[ECS Fargate Cluster]
-            VoiceTask["Voice Worker Task<br/>(Container)"]
-            Polly[AWS Polly]
-        end
+
 
         subgraph "Storage & Config"
             DDB[("DynamoDB<br/>GoldPriceHistory")]
@@ -53,7 +48,7 @@ graph TB
     %% API Lambda Logic
     ApiLambda -->|1. Acknowledge/Reply| Discord
     ApiLambda -->|"2. Dispatch Async Job (Judge/Gold)"| CmdQueue
-    ApiLambda -->|3. Dispatch Voice Job| VoiceQueue
+
     ApiLambda -.->|Read Key| Secrets
 
     %% Worker Logic
@@ -62,22 +57,16 @@ graph TB
     WorkerLambda -->|Generate Content| Gemini
     WorkerLambda -->|Read/Write| DDB
     WorkerLambda -->|Update Interaction| Discord
-    WorkerLambda -->|Dispatch Voice Job| VoiceQueue
+
     WorkerLambda -.->|Read Credentials| Secrets
 
-    %% Voice Logic
-    VoiceQueue -->|Poll| VoiceTask
-    VoiceCluster -- Hosts --> VoiceTask
-    VoiceTask -->|Synthesize Speech| Polly
-    VoiceTask -->|Connect Voice| Discord
-    VoiceTask -.->|Read Token| Secrets
 
     %% Styling
     classDef aws fill:#FF9900,stroke:#232F3E,stroke-width:2px,color:white;
     classDef discord fill:#5865F2,stroke:#232F3E,stroke-width:2px,color:white;
     classDef ext fill:#808080,stroke:#333,stroke-width:2px,color:white;
 
-    class APIGW,ApiLambda,CmdQueue,WorkerLambda,VoiceQueue,VoiceCluster,VoiceTask,Polly,DDB,Secrets aws;
+    class APIGW,ApiLambda,CmdQueue,WorkerLambda,DDB,Secrets aws;
     class Discord,User discord;
     class Blizzard,Gemini ext;
 ```
@@ -102,18 +91,7 @@ graph TB
   - Handles long-running logic (e.g., fetching WoW character data, gold prices, generating AI responses).
   - Uses **Gemini AI** for analysis and **Blizzard API** for game data.
   - Persists data to **DynamoDB**.
-  - Dispatches voice jobs to **Voice Queue**.
   - Updates the original Discord interaction via webhook.
-
-### 3. Voice Worker (Stateful)
-
-- **Resource**: AWS ECS Fargate
-- **Trigger**: SQS (`VoiceCommandQueue`)
-- **Responsibility**:
-  - Maintains persistent connection to Discord Voice Channels.
-  - Converts text to speech using **AWS Polly**.
-  - Streams audio to Discord.
-  - Runs inside a VPC with public internet access (no NAT gateway cost optimization).
 
 ### 4. Data & Configuration
 

@@ -2,7 +2,7 @@ import { InteractionResponseType } from 'discord-interactions'
 import { getG2GGoldPrice } from '../services/g2g'
 import { recordGoldPrice, getGoldPriceHistory } from '../db/price-history'
 import { generateGoldChartUrl } from '../lib/chart'
-import { sendCommandToQueue, sendVoiceCommand } from '../services/sqs'
+import { sendCommandToQueue } from '../services/sqs'
 import { DiscordCommandOption, DiscordInteraction } from '../types/discord'
 import { editOriginalResponse } from '../lib/discord/response'
 
@@ -50,18 +50,6 @@ export const processGoldCommandAsync = async (payload: any) => {
     // Generate Chart
     const history = await getGoldPriceHistory(24)
     const chartUrl = await generateGoldChartUrl(history, amount)
-
-    // Send to Voice Worker
-    const { guildId, userId } = payload
-    if (guildId && userId) {
-      const voiceText = `The current gold price is ${unitPrice.toFixed(
-        4,
-      )} per gold. For ${amount.toLocaleString()} gold, it will cost ${totalPrice} dollars.`
-
-      await sendVoiceCommand(guildId, userId, voiceText).catch((err) =>
-        console.error('Failed to send gold voice command:', err),
-      )
-    }
 
     await editOriginalResponse(applicationId, interactionToken, {
       content: `💰 **CNLTeam Gold Price:** $${totalPrice} for ${amount.toLocaleString()} gold ($${unitPrice.toFixed(

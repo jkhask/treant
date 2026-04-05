@@ -1,6 +1,5 @@
 import { InteractionType } from 'discord-interactions'
 import { handleGoldCommand } from './gold'
-import { handleSpeakCommand } from './speak'
 import { handlePunCommand } from './pun'
 // import { handleJudgeCommand } from './judge'
 import { DiscordInteraction } from '../types/discord'
@@ -23,10 +22,6 @@ export const dispatchCommand = async (interaction: DiscordInteraction) => {
 
   if (subcommand.name === 'gold') {
     return await handleGoldCommand(subcommand, interaction)
-  }
-
-  if (subcommand.name === 'speak') {
-    return await handleSpeakCommand(subcommand, interaction)
   }
 
   // if (subcommand.name === 'judge') {

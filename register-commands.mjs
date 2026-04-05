@@ -25,19 +25,7 @@ const commands = [
           },
         ],
       },
-      {
-        name: 'speak',
-        description: 'Speak text in voice channel',
-        type: 1, // SUB_COMMAND
-        options: [
-          {
-            name: 'text',
-            description: 'Text to speak',
-            type: 3, // STRING
-            required: true,
-          },
-        ],
-      },
+
       {
         name: 'judge',
         description: 'Judge a character based on their gear (Dreamscythe)',
