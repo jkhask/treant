@@ -52,7 +52,7 @@ export const processGoldCommandAsync = async (payload: any) => {
     const chartUrl = await generateGoldChartUrl(history, amount)
 
     await editOriginalResponse(applicationId, interactionToken, {
-      content: `💰 **CNLTeam Gold Price:** $${totalPrice} for ${amount.toLocaleString()} gold ($${unitPrice.toFixed(
+      content: `💰 **KANG17 Gold Price:** $${totalPrice} for ${amount.toLocaleString()} gold ($${unitPrice.toFixed(
         4,
       )}/gold)`,
       embeds: [
