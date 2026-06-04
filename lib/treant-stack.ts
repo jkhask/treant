@@ -27,6 +27,11 @@ export class TreantStack extends cdk.Stack {
       description: 'API Key for Google Gemini',
     })
 
+    // Warcraft Logs Credentials Secret
+    const warcraftLogsSecret = new cdk.aws_secretsmanager.Secret(this, 'WarcraftLogsSecret', {
+      description: 'Client ID and Secret for Warcraft Logs API',
+    })
+
     // DynamoDB Table for Gold Price History
     const goldPriceTable = new cdk.aws_dynamodb.Table(this, 'GoldPriceHistoryTable', {
       partitionKey: { name: 'type', type: cdk.aws_dynamodb.AttributeType.STRING },
@@ -40,6 +45,7 @@ export class TreantStack extends cdk.Stack {
       discordPublicKey,
       blizzardCredentials,
       googleApiKey,
+      warcraftLogsSecret,
       goldPriceTable,
     })
 
@@ -63,6 +69,11 @@ export class TreantStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'GoogleApiKeySecretName', {
       value: googleApiKey.secretName,
       description: 'The name of the Google API Key secret in Secrets Manager',
+    })
+
+    new cdk.CfnOutput(this, 'WarcraftLogsSecretName', {
+      value: warcraftLogsSecret.secretName,
+      description: 'The name of the Warcraft Logs secret in Secrets Manager',
     })
 
     new cdk.CfnOutput(this, 'ApiFunctionArn', {

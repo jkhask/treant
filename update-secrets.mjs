@@ -91,6 +91,33 @@ const STACK_NAME = 'TreantStack'
     } else {
       console.log('ℹ️ GOOGLE_API_KEY not in .env, skipping.')
     }
+
+    // 4. Update Warcraft Logs Credentials
+    const wclClientId = process.env.WARCRAFT_LOGS_CLIENT_ID
+    const wclClientSecret = process.env.WARCRAFT_LOGS_CLIENT_SECRET
+
+    if (wclClientId && wclClientSecret) {
+      console.log('Found WARCRAFT_LOGS_CLIENT_ID and WARCRAFT_LOGS_CLIENT_SECRET in .env, updating secret...')
+
+      const wclOutput = outputs.find(
+        (o) => o.OutputKey && o.OutputKey.startsWith('WarcraftLogsSecretName'),
+      )
+
+      if (wclOutput && wclOutput.OutputValue) {
+        const secretName = wclOutput.OutputValue
+        await smClient.send(
+          new PutSecretValueCommand({
+            SecretId: secretName,
+            SecretString: JSON.stringify({ clientId: wclClientId, clientSecret: wclClientSecret }),
+          }),
+        )
+        console.log(`✅ Successfully updated Warcraft Logs Credentials (${secretName})`)
+      } else {
+        console.warn('⚠️ Could not find WarcraftLogsSecretName output in CloudFormation stack')
+      }
+    } else {
+      console.log('ℹ️ WARCRAFT_LOGS_CLIENT_ID or WARCRAFT_LOGS_CLIENT_SECRET not in .env, skipping.')
+    }
   } catch (error) {
     console.error('❌ Error updating secrets:', error)
     process.exit(1)

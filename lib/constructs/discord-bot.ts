@@ -9,6 +9,7 @@ interface DiscordBotProps {
   discordPublicKey: cdk.aws_secretsmanager.ISecret
   blizzardCredentials: cdk.aws_secretsmanager.ISecret
   googleApiKey: cdk.aws_secretsmanager.ISecret
+  warcraftLogsSecret: cdk.aws_secretsmanager.ISecret
   goldPriceTable: cdk.aws_dynamodb.ITable
 }
 
@@ -61,6 +62,7 @@ export class DiscordBot extends Construct {
       environment: {
         BLIZZARD_SECRET_NAME: props.blizzardCredentials.secretName,
         GOOGLE_API_KEY_SECRET_NAME: props.googleApiKey.secretName,
+        WARCRAFT_LOGS_SECRET_NAME: props.warcraftLogsSecret.secretName,
         GOLD_PRICE_TABLE_NAME: props.goldPriceTable.tableName,
       },
       bundling: {
@@ -72,6 +74,7 @@ export class DiscordBot extends Construct {
     // Grant Worker permissions
     props.blizzardCredentials.grantRead(workerFunction)
     props.googleApiKey.grantRead(workerFunction)
+    props.warcraftLogsSecret.grantRead(workerFunction)
     props.goldPriceTable.grantReadWriteData(workerFunction)
 
     // Wire Worker to SQS

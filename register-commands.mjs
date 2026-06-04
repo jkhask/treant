@@ -39,6 +39,19 @@ const commands = [
           },
         ],
       },
+      {
+        name: 'analyze',
+        description: 'Get a character profile summary from Blizzard API (Dreamscythe)',
+        type: 1, // SUB_COMMAND
+        options: [
+          {
+            name: 'character',
+            description: 'Character Name',
+            type: 3, // STRING
+            required: true,
+          },
+        ],
+      },
     ],
   },
 ]

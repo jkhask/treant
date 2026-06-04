@@ -4,7 +4,7 @@ export const sqsClient = new SQSClient({})
 const COMMAND_QUEUE_URL = process.env.COMMAND_QUEUE_URL
 
 export interface CommandPayload {
-  command: 'judge' | 'gold'
+  command: 'judge' | 'gold' | 'analyze'
   applicationId: string
   interactionToken: string
   guildId?: string

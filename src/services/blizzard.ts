@@ -106,3 +106,53 @@ export const getCharacterEquipment = async (
     throw error
   }
 }
+
+export interface CharacterProfileSummary {
+  name: string
+  id: number
+  gender: { name: string }
+  faction: { name: string }
+  race: { name: string }
+  character_class: { name: string }
+  level: number
+  average_item_level: number
+  equipped_item_level: number
+  guild?: { name: string }
+}
+
+export const getCharacterProfileSummary = async (
+  accessToken: string,
+  realmSlug: string,
+  characterName: string,
+): Promise<CharacterProfileSummary> => {
+  const url = `https://us.api.blizzard.com/profile/wow/character/${realmSlug}/${characterName.toLowerCase()}?namespace=profile-classicann-us&locale=en_US&t=${Date.now()}`
+
+  console.log(`[Blizzard] Requesting profile summary from: ${url}`)
+
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Cache-Control': 'no-cache',
+        Pragma: 'no-cache',
+      },
+    })
+
+    console.log(`[Blizzard] Response received. Status: ${response.status}`)
+
+    if (!response.ok) {
+      console.error(`[Blizzard] Error response: ${response.status} ${response.statusText}`)
+      if (response.status === 404) {
+        throw new Error(`Character ${characterName} not found on realm ${realmSlug}`)
+      }
+      throw new Error(`Failed to fetch Character Profile Summary: ${response.statusText}`)
+    }
+
+    const data = await response.json()
+    console.log('[Blizzard] JSON parsed successfully')
+    return data as CharacterProfileSummary
+  } catch (error) {
+    console.error('[Blizzard] Fetch failed:', error)
+    throw error
+  }
+}
